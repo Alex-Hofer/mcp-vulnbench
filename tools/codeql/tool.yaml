@@ -1,0 +1,9 @@
+# CodeQL with the security-extended suite and without MCP models (baseline for codeql-mcp in M2).
+name: codeql
+tool: codeql
+version: "2.27.1"
+image: mcpvb/codeql:2.27.1
+dockerfile: docker/codeql
+languages: [python, typescript, javascript]
+command: [run-codeql.sh, "{lang}", "{src}", "{out}"]
+timeout_s: 3600

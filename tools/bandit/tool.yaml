@@ -1,0 +1,13 @@
+# Bandit (Python only). The overrides correct CWEs that Bandit files under another weakness class.
+name: bandit
+tool: bandit
+version: "1.9.4"
+image: mcpvb/bandit:1.9.4
+dockerfile: docker/bandit
+languages: [python]
+command: [bandit, --recursive, "{src}", --format, sarif, --output, "{out}/raw.sarif", --exit-zero, --quiet]
+timeout_s: 900
+cwe_overrides:
+  B102: CWE-95   # exec_used: tagged CWE-78 by Bandit
+  B307: CWE-95   # eval: tagged CWE-78 by Bandit
+  B310: CWE-918  # urllib urlopen: tagged CWE-22 by Bandit
