@@ -1,0 +1,23 @@
+id: mcpvb-0017
+title: "Path traversal in cleanup_attachments of mail-mcp-bridge"
+advisories: [CVE-2026-7386, GHSA-2gfj-fr43-4735]
+repo: https://github.com/fatbobman/mail-mcp-bridge
+license: MIT
+language: python
+subdir: null
+class: path-traversal
+cwe: CWE-22
+mcp_tool: cleanup_attachments
+vulnerable:
+  commit: d9e7d9acc2abcf9da8252d76506fc5afbc08d08e
+  locations:
+    - {file: src/cleanup_attachments.py, function: cleanup_attachments, lines: [27, 106]}
+    - {file: src/extract_attachments.py, function: extract_attachments, lines: [60, 233]}
+fixed:
+  commit: 638b162b26532e32fa8d8047f638537dbdfe197a
+  locations:
+    - {file: src/cleanup_attachments.py, function: cleanup_attachments, lines: [32, 124]}
+    - {file: src/extract_attachments.py, function: extract_attachments, lines: [64, 235]}
+source: ghsa
+split: null
+notes: "The cleanup_attachments tool joined each caller-supplied message_id (only '<>' stripped) onto the attachment base directory and deleted the result with shutil.rmtree, so '../' values removed arbitrary directories; extract_attachments built its output directory the same way. The fix maps message IDs to a base64-encoded single directory name and checks that the resolved directory stays under the base directory (attachment_paths.get_message_dir). Fix: https://github.com/fatbobman/mail-mcp-bridge/commit/638b162b26532e32fa8d8047f638537dbdfe197a"
