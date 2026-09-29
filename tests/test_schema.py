@@ -143,3 +143,11 @@ def test_misnamed_case_files_are_reported(tmp_path):
     (folder / "case.yml").write_text(yaml.safe_dump(VALID), encoding="utf-8")
     with pytest.raises(CaseError, match="must be named case.yaml"):
         load_cases(tmp_path)
+
+
+def test_case_file_in_another_encoding_is_reported(tmp_path):
+    folder = tmp_path / "mcpvb-0001"
+    folder.mkdir()
+    (folder / "case.yaml").write_bytes("title: Größe\n".encode("cp1252"))
+    with pytest.raises(CaseError, match="UTF-8"):
+        load_case(folder / "case.yaml")

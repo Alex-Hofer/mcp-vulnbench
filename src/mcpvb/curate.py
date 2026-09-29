@@ -3,12 +3,22 @@
 from __future__ import annotations
 
 import ast
+import codecs
 from pathlib import Path
+
+
+def _source(path: Path) -> str | bytes:
+    """Source for ast.parse: bytes keep PEP 263 cookies and a UTF-8 BOM working; UTF-16
+    (what redirecting `git show` in Windows PowerShell 5 produces) is decoded first."""
+    data = path.read_bytes()
+    if data.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+        return data.decode("utf-16")
+    return data
 
 
 def python_functions(path: Path) -> list[tuple[str, int, int]]:
     """(qualified name, first line including decorators, last line) of every function."""
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    tree = ast.parse(_source(path), filename=str(path))
     found: list[tuple[str, int, int]] = []
 
     def visit(node: ast.AST, prefix: str) -> None:

@@ -65,3 +65,11 @@ def test_in_source_suppressions_are_ignored():
 def test_empty_tools_folder_is_an_error(tmp_path):
     with pytest.raises(ToolError, match="no tool variants found"):
         load_variants(tmp_path)
+
+
+def test_tool_file_in_another_encoding_is_reported(tmp_path):
+    folder = tmp_path / "x"
+    folder.mkdir()
+    (folder / "tool.yaml").write_bytes("name: Größe\n".encode("cp1252"))
+    with pytest.raises(ToolError, match="UTF-8"):
+        load_variant(folder / "tool.yaml")

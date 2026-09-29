@@ -143,6 +143,8 @@ class Case(BaseModel):
 def load_case(path: Path) -> Case:
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError as exc:
+        raise CaseError(f"{path}: not UTF-8 ({exc}); save the file as UTF-8") from exc
     except yaml.YAMLError as exc:
         raise CaseError(f"{path}: invalid YAML: {exc}") from exc
     if not isinstance(data, dict):
