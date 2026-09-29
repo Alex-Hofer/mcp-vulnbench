@@ -1,0 +1,23 @@
+id: mcpvb-0002
+title: "Command injection in the kubectl and helm tools of mcp-kubernetes-server"
+advisories: [CVE-2025-59377, GHSA-4hqq-7q79-932p]
+repo: https://github.com/feiskyer/mcp-kubernetes-server
+license: Apache-2.0
+language: python
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: kubectl
+vulnerable:
+  commit: 78957b6c1a3982080cf6fcaac6f6e9014116a71c
+  locations:
+    - {file: src/mcp_kubernetes_server/command.py, function: ShellProcess.run, lines: [20, 28]}
+    - {file: src/mcp_kubernetes_server/command.py, function: ShellProcess.exec, lines: [30, 50]}
+fixed:
+  commit: 26267fa627d7273b9fa28c290169ef5450e9f096
+  locations:
+    - {file: src/mcp_kubernetes_server/command.py, function: ShellProcess.run, lines: [20, 25]}
+    - {file: src/mcp_kubernetes_server/command.py, function: ShellProcess.exec, lines: [27, 46]}
+source: ghsa
+split: null
+notes: "The kubectl and helm tools passed their command string to ShellProcess, which ran it with subprocess.run(shell=True), so shell metacharacters executed arbitrary commands even in read-only mode; the fix runs an argument list without a shell (the unchanged handlers still pass a string, which the fixed ShellProcess rejects). Fix: https://github.com/feiskyer/mcp-kubernetes-server/commit/26267fa627d7273b9fa28c290169ef5450e9f096 (merged via ddcceb6, released in v0.1.12)"
