@@ -19,5 +19,5 @@ fixed:
     - {file: src/config.py, function: is_path_allowed, lines: [19, 29]}
     - {file: src/tools.py, function: write_file_tool, lines: [87, 117]}
 source: ghsa
-split: null
+split: test
 notes: "is_path_allowed, the guard of all file tools, compared os.path.abspath(path) with a plain startswith against the home directory, so sibling paths such as /home/alice_backup/x (and symlinks) passed and write_file_tool created and wrote files outside the allowed root; the fix compares realpath results with a trailing separator. The fix commit also moves the tool functions unchanged from server.py to src/tools.py and the guard to src/config.py. Fix: https://github.com/geekgod382/filesystem-mcp-server/commit/45364545fc60dc80aadcd4379f08042d3d3d292e"

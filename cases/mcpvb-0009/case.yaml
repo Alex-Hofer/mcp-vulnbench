@@ -17,5 +17,5 @@ fixed:
   locations:
     - {file: src/netlicensing_mcp/client.py, function: nl_get, lines: [169, 176]}
 source: ghsa
-split: null
+split: test
 notes: "netlicensing_get_product interpolates product_number into the REST path that nl_get sends with httpx, so '../token' collapses to the /token endpoint and returns API keys without the token-specific redaction; the fix validates every path segment (_validated_path) in nl_get and the other HTTP helpers. Advisory lists CWE-22; classified CWE-918 because the tainted path segment reaches an outgoing httpx request, not the filesystem. Fix: https://github.com/Labs64/NetLicensing-MCP/pull/6 (commit b8fd0ea76d533202573eb24add9fb2fbd9331496)"

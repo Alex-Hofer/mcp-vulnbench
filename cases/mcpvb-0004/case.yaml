@@ -19,5 +19,5 @@ fixed:
     - {file: src/wireshark_mcp/tshark/_validation.py, function: ValidationMixin._validate_output_path, lines: [113, 158]}
     - {file: src/wireshark_mcp/tshark/_extraction.py, function: ExtractionMixin.export_objects, lines: [81, 103]}
 source: ghsa
-split: null
+split: dev
 notes: "wireshark_export_objects passes the caller's dest_dir to os.makedirs and tshark --export-objects after _validate_output_path(), which enforced the directory sandbox only when WIRESHARK_MCP_ALLOWED_DIRS was set, so by default files could be written anywhere; the fix, part of the 3.0.0 release commit whose changelog names CVE-2026-43901, makes _validate_output_path reject all writes unless allowed directories are configured. Fix: https://github.com/bx33661/Wireshark-MCP/commit/cdb7aaa1ade70ff70774756b429a718bbdf43367"

@@ -17,5 +17,5 @@ fixed:
   locations:
     - {file: src/mysql_mcp_server/server.py, function: read_resource, lines: [181, 218]}
 source: ghsa
-split: null
+split: test
 notes: "read_resource is the MCP resources/read handler, not a tool: it took the table name from the client-supplied resource URI (mysql://<table>/data) and interpolated it unquoted into 'SELECT * FROM {table} LIMIT 100' for cursor.execute, so crafted URIs injected SQL; the fix validates identifiers against ^[a-zA-Z0-9_$]+$ (new helper validate_identifier) and backtick-quotes them. The execute_sql tool runs arbitrary SQL by design and is not part of the case. The advisory lists CWE-74, but the sink is SQL text, so the case uses CWE-89. Fix: https://github.com/designcomputer/mysql_mcp_server/commit/9860d521cce246f0dfe1ab885bac2fdb1a7d18d4 (squash commit of the v0.3.0 merge; the advisory's patch 080bef9 is from the unmerged PR #86)"

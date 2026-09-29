@@ -19,5 +19,5 @@ fixed:
     - {file: src/mcp_server_git/server.py, function: git_diff, lines: [118, 124]}
     - {file: src/mcp_server_git/server.py, function: git_checkout, lines: [186, 193]}
 source: ghsa
-split: null
+split: test
 notes: "The git_diff and git_checkout tools passed target and branch_name unchecked to the git CLI, so values such as --output=/path were parsed as options (arbitrary file overwrite); the fix rejects values starting with '-' and requires them to resolve via rev_parse. Fix: https://github.com/modelcontextprotocol/servers/commit/9e5d5b8e4b5dd6fa4fc84cad5eb291568024aad4"

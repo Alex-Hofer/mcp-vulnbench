@@ -21,5 +21,5 @@ fixed:
     - {file: doris_mcp_server/utils/security.py, function: SQLSecurityValidator.validate, lines: [898, 957]}
     - {file: doris_mcp_server/utils/db.py, function: DorisConnection.execute, lines: [77, 140]}
 source: ghsa
-split: null
+split: dev
 notes: "The exec_query tool prepended its unvalidated db_name/catalog_name arguments as 'USE `{db_name}`; ' context statements to the query in exec_query_for_mcp, and SQLSecurityValidator.validate parsed only the first statement, so a crafted db_name smuggled additional SQL statements past validation to cursor.execute in DorisConnection.execute (Akamai write-up by Tomer Peled); the fix validates and backtick-escapes both identifiers and validates every statement. Fix: https://github.com/apache/doris-mcp-server/commit/e58361e04b42e89465c7f6a4457faf5b3aa798aa (PR #68, released in 0.6.1)"

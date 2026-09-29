@@ -19,5 +19,5 @@ fixed:
     - {file: src/phantom/_utils.py, function: validate_output_path, lines: [249, 284]}
     - {file: src/phantom/processing.py, function: apply_processing, lines: [262, 331]}
 source: ghsa
-split: null
+split: dev
 notes: "With PHANTOM_OUTPUT_DIR unset (the default), validate_output_path returned the caller-supplied path unchanged, so the MCP write tools such as apply_processing wrote their output (sf.write) to any path, e.g. shell startup files; the fix always confines writes to PHANTOM_OUTPUT_DIR or a default ~/.phantom/output sandbox and re-verifies the resolved path. Advisory CWEs: CWE-22, CWE-73 (externally controlled output path; the sink is a file write, hence CWE-22) and CWE-400 (decode-bomb DoS, fixed separately in abb67ea and not part of this case). Fix: https://github.com/fadelabs/phantom/commit/007235f02a5645513d353521bb8448b6e5c645a9 (release 1.3.1)"

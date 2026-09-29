@@ -23,5 +23,5 @@ fixed:
     - {file: src/mcp_atlassian/servers/dependencies.py, function: get_confluence_fetcher, lines: [465, 713]}
     - {file: src/mcp_atlassian/jira/client.py, function: JiraClient.__init__, lines: [36, 176]}
 source: ghsa
-split: null
+split: dev
 notes: "In the HTTP transports the tainted value is the X-Atlassian-Jira-Url / X-Atlassian-Confluence-Url request header (not a tool argument): UserTokenMiddleware stores it unvalidated, and get_jira_fetcher/get_confluence_fetcher, which every Jira/Confluence tool call awaits, build a client for that URL (JiraClient.__init__ passes it to Jira(url=...)) and immediately request {url}/rest/api/2/myself; the fix validates both header URLs (scheme, private/reserved IPs, DNS resolution, optional domain allowlist) in the middleware and adds a redirect-blocking hook to header-based sessions. Fix: https://github.com/sooperset/mcp-atlassian/commit/5cd697dfce9116ef330b8dc7a91291640e0528d9"

@@ -17,5 +17,5 @@ fixed:
   locations:
     - {file: src/dbt_mcp/dbt_cli/tools.py, function: create_dbt_cli_tool_definitions._run_dbt_command, lines: [52, 149]}
 source: ghsa
-split: null
+split: dev
 notes: "_run_dbt_command appended the node_selection tokens and resource_type values of the dbt CLI tools (list, build, run, test, ...) unchecked to the dbt argv, so values such as --profiles-dir /tmp/evil were parsed as dbt options; the fix rejects selector tokens starting with '-' and allowlists resource types. Fix: https://github.com/dbt-labs/dbt-mcp/pull/752 (commit 6534507b5e7a729758d5baece155602cad0bb22f)"

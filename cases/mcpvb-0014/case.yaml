@@ -19,5 +19,5 @@ fixed:
     - {file: kubectl_mcp_tool/minimal_wrapper.py, function: run_kubectl_command, lines: [47, 75]}
     - {file: kubectl_mcp_tool/minimal_wrapper.py, function: main.process_natural_language, lines: [88, 114]}
 source: ghsa
-split: null
+split: dev
 notes: "The process_natural_language tool of the stdio minimal wrapper (python -m kubectl_mcp_tool.minimal_wrapper) passed a query starting with 'kubectl ' unchanged to run_kubectl_command, which executed it with subprocess.run(shell=True), so shell metacharacters ran arbitrary commands (the ASEC advisory referenced by the GHSA names run_kubectl_command); the fix splits the command with shlex and runs it with shell=False (advisory CWE-94, but the sink is an OS shell command, hence CWE-78). Fix: https://github.com/rohitg00/kubectl-mcp-server/commit/9eb90c0174b41822b9256149c0fbb6ea355f7029 (closes security report #36, merged via PR #40; contained in git tag v1.2.0 and PyPI 1.3.0, while PyPI 1.2.0 was built from the vulnerable code)"

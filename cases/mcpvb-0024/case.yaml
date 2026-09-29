@@ -21,5 +21,5 @@ fixed:
     - {file: src/fastmcp/utilities/openapi/director.py, function: RequestDirector.build, lines: [23, 78]}
     - {file: src/fastmcp/server/providers/openapi/components.py, function: OpenAPITool.run, lines: [179, 253]}
 source: ghsa
-split: null
+split: test
 notes: "The tools FastMCP's OpenAPI provider generates per operation (handler OpenAPITool.run) substituted path-parameter arguments unencoded into the path template in RequestDirector._build_url and resolved the result with urljoin, so values such as '../../admin?' escaped the API prefix and reached arbitrary endpoints of the backend with the provider's credentials (the URL goes into httpx.Request in RequestDirector.build and is sent by OpenAPITool.run). The fix percent-encodes path parameters, including dots. Fix: https://github.com/PrefectHQ/fastmcp/pull/3507 (squash commit 40bdfb6b1de0ce30609ee9ba5bb95ecd04a9fb71)"

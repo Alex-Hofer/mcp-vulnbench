@@ -19,5 +19,5 @@ fixed:
     - {file: src/cleanup_attachments.py, function: cleanup_attachments, lines: [32, 124]}
     - {file: src/extract_attachments.py, function: extract_attachments, lines: [64, 235]}
 source: ghsa
-split: null
+split: test
 notes: "The cleanup_attachments tool joined each caller-supplied message_id (only '<>' stripped) onto the attachment base directory and deleted the result with shutil.rmtree, so '../' values removed arbitrary directories; extract_attachments built its output directory the same way. The fix maps message IDs to a base64-encoded single directory name and checks that the resolved directory stays under the base directory (attachment_paths.get_message_dir). Fix: https://github.com/fatbobman/mail-mcp-bridge/commit/638b162b26532e32fa8d8047f638537dbdfe197a"

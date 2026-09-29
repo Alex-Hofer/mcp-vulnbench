@@ -21,5 +21,5 @@ fixed:
     - {file: src/mcp_atlassian/confluence/attachments.py, function: AttachmentsMixin._upload_attachment_direct, lines: [613, 648]}
     - {file: src/mcp_atlassian/jira/attachments.py, function: AttachmentsMixin.upload_attachment, lines: [364, 427]}
 source: ghsa
-split: null
+split: dev
 notes: "The file_path argument of confluence_upload_attachment (also confluence_upload_attachments, and the attachments argument of jira_update_issue via the Jira upload_attachment) reaches open(file_path, 'rb') without any confinement, so any file readable by the server can be exfiltrated as an attachment; the fix confines upload paths to the working directory with validate_safe_path() in the Confluence and Jira upload_attachment methods. GHSA-93xw-j965-9mx3, GHSA-p6hp-93wp-fh6p and GHSA-f26r-j276-ggg4 report the same bug. Fix: https://github.com/sooperset/mcp-atlassian/pull/1448 (squash commit b041733473f95119dd539542a43c280737a8e460)"

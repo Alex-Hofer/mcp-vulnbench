@@ -18,5 +18,5 @@ fixed:
   locations:
     - {file: src/mcp_server_git/server.py, function: serve.call_tool, lines: [343, 451]}
 source: ghsa
-split: null
+split: test
 notes: "The git_init tool passed repo_path unchecked to git.Repo.init(mkdir=True), creating repositories at arbitrary filesystem locations outside the configured --repository; the fix removes the tool (git_init and its dispatch in call_tool). Fix: https://github.com/modelcontextprotocol/servers/commit/eac56e7bcde48fb64d5a973924d05d69a7d876e6 (PR #2757). Caveat: the fixed call_tool still passes repo_path of the remaining tools without a --repository check (CVE-2025-68145, fixed later), so a path-traversal finding there may be a true positive for that bug rather than a missed fix."

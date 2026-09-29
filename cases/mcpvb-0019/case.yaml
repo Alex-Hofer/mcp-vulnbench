@@ -21,5 +21,5 @@ fixed:
     - {file: src/swarm/store.py, function: SwarmStore.run_dir, lines: [131, 153]}
     - {file: src/swarm/store.py, function: SwarmStore.load_run, lines: [175, 199]}
 source: ghsa
-split: null
+split: test
 notes: "The MCP swarm tools (get_swarm_status, get_run_result, retry_run) passed the caller-supplied run_id to SwarmStore.load_run, which read {runs_dir}/{run_id}/run.json via run_dir without validation, so '../' run IDs read run.json files outside the runs directory and the following reconcile could write state files there; the fix makes run_dir reject empty, absolute and path-shaped run IDs and the tools return an error instead. Fix: https://github.com/HKUDS/Vibe-Trading/pull/258 (squash commit f45fd85392f07b5e404e41d4fcb0ef0d6c2f87ab, release v0.1.10)"

@@ -21,5 +21,5 @@ fixed:
     - {file: src/stata_mcp/stata/builtin_tools/ado_install/ssc_install.py, function: SSC_Install.install, lines: [15, 19]}
     - {file: src/stata_mcp/stata/stata_controller/controller.py, function: StataController.run, lines: [81, 119]}
 source: ghsa
-split: null
+split: test
 notes: "The ado_package_install tool (default 'all' profile) interpolated the unvalidated package argument into 'ssc install {package}, replace' (SSC_Install.install), which StataController.run sends to the Stata REPL via pexpect sendline, so embedded newlines inject arbitrary Stata code including the shell escape (the sink is the Stata interpreter, hence code-injection as in the advisory); the fix, the first commit of the v1.19.0 hardening series, validates the source, package name and net location in the tool and in all three installers. Fix: https://github.com/SepineTam/mcp-for-stata/commit/b2bc49ec447836e0b1d442ece472c42b7f78724b"

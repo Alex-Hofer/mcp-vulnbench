@@ -21,5 +21,5 @@ fixed:
     - {file: src/scrapling_fetch_mcp/_fetcher.py, function: fetch_pattern_impl, lines: [104, 133]}
     - {file: src/scrapling_fetch_mcp/_scrapling.py, function: browse_url, lines: [6, 26]}
 source: ghsa
-split: null
+split: test
 notes: "The s_fetch_page and s_fetch_pattern tools passed the caller's url unchecked via fetch_page_impl/fetch_pattern_impl to the Scrapling fetchers in browse_url, which also follow file:// URLs, so the fetch tools read and returned arbitrary local files. The fix (_require_web_url) restricts the reachable targets to http/https URLs; loopback and private hosts remain reachable by design, so an SSRF finding that persists at the fetch sink may be a true positive for that remaining behavior rather than a missed fix. The reporter suggested CWE-22, but the tainted value is the URL of an outgoing request, so the case keeps the advisory's CWE-918. Fix: https://github.com/cyberchitta/scrapling-fetch-mcp/commit/9f6f34e92c55c3d95566ad9c62aca7327d24533a"

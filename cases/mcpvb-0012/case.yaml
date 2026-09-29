@@ -21,5 +21,5 @@ fixed:
     - {file: doris_mcp_server/utils/schema_extractor.py, function: MetadataExtractor.get_database_tables_async, lines: [1325, 1367]}
     - {file: doris_mcp_server/utils/db.py, function: DorisConnection.execute, lines: [77, 140]}
 source: ghsa
-split: null
+split: dev
 notes: "The get_db_table_list metadata tool passed db_name (and catalog_name) unvalidated into f\"SHOW TABLES FROM `{db}`\" in get_database_tables_async, and MetadataExtractor._execute_query_async ran it without the caller's auth context, so DorisConnection.execute skipped SQL security validation before cursor.execute; the fix validates and backtick-escapes the identifiers in this and the other metadata paths (the advisory names no tool: get_db_table_list is chosen because it is the metadata tool whose only user-controlled identifier is the database name and the one PR #68 tests with a db_name payload; passing the auth context followed later in PR #69). Fix: https://github.com/apache/doris-mcp-server/pull/68 (squash commit e58361e04b42e89465c7f6a4457faf5b3aa798aa)"

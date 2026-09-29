@@ -19,5 +19,5 @@ fixed:
     - {file: src/excel_mcp/server.py, function: get_excel_path, lines: [87, 113]}
     - {file: src/excel_mcp/workbook.py, function: create_workbook, lines: [12, 33]}
 source: ghsa
-split: null
+split: dev
 notes: "get_excel_path(), which every file tool calls on its filepath argument, returned absolute paths unchanged and joined relative ones onto EXCEL_FILES_PATH without resolving them, so absolute or ../ paths escaped the sandbox in SSE/HTTP mode (the create_workbook tool's implementation in workbook.py then runs mkdir(parents=True) and saves there); the fix rejects absolute paths and NUL bytes in get_excel_path and requires the realpath to stay inside EXCEL_FILES_PATH. Fix: https://github.com/haris-musa/excel-mcp-server/commit/f51340ecd5778952405044b203d3a2d4c8a46833"

@@ -23,5 +23,5 @@ fixed:
     - {file: mcp_sequential_thinking/storage_utils.py, function: save_thoughts_to_file, lines: [27, 67]}
     - {file: mcp_sequential_thinking/storage_utils.py, function: load_thoughts_from_file, lines: [70, 133]}
 source: ghsa
-split: null
+split: test
 notes: "The export_session and import_session tools passed the caller-supplied file_path unchecked to ThoughtStorage, which wrote the session JSON to it (creating parent directories, sink open() in save_thoughts_to_file) or read it (load_thoughts_from_file), so any path outside the storage directory could be written or read; the fix resolves the path and confines it to the storage directory (_ensure_within) and no longer renames the caller's file on parse errors. Fix: https://github.com/arben-adm/mcp-sequential-thinking/pull/18 (merge commit 2fad3ee8ab1d0868b6c1afb5895bc336a10e5267, vulnerable = PR base)"

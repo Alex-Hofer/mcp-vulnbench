@@ -23,5 +23,5 @@ fixed:
     - {file: src/client/connection.py, function: _build_telegram_client_for_token, lines: [215, 248]}
     - {file: src/client/connection.py, function: ensure_connection, lines: [339, 438]}
 source: ghsa
-split: null
+split: dev
 notes: "The tainted value is the bearer token of the MCP HTTP transport, not a tool argument: in HTTP auth mode it was joined unvalidated into {session_dir}/{token}.session, so SessionFileTokenVerifier.verify_token accepted a token such as ../fast-mcp-telegram/telegram whenever that file existed, and every tool call (e.g. send_message) then opened the traversed session file through _get_client_by_token and the client builder (ensure_connection may unlink it), bypassing the reserved-name protection of the default session. The fix enforces a strict 43-character URL-safe token format and resolve() containment in the session directory (session_token_validation.py). Advisory CWEs: CWE-22, CWE-287; the advisory's source location names alexeyleshchenko/fast-mcp-telegram, a temporary copy of this repository with the same commits. Fix: https://github.com/leshchenko1979/fast-mcp-telegram/commit/247637f49e364289c64332afe399c728de915811 (PR #53, release 0.19.1)"
