@@ -62,13 +62,14 @@ def _ensure_mirror(url: str, cache: Path) -> Path:
 def _regular_files_only(member: tarfile.TarInfo, dest: str) -> tarfile.TarInfo | None:
     """Safe extraction ('data' filter) that also skips links: analyzers only need regular files.
 
-    Tool configurations of the analyzed project are dropped too: the benchmark measures what a
-    tool finds, not how the project configured it (see docs/design.md, tool configuration policy).
+    Links are skipped before the filter runs, which would otherwise reject an absolute or
+    out-of-tree link by aborting the whole export. Tool configurations of the analyzed project
+    are dropped too: the benchmark measures what a tool finds, not how the project configured it
+    (see docs/design.md, tool configuration policy).
     """
-    member = tarfile.data_filter(member, dest)
     if member.issym() or member.islnk() or PurePosixPath(member.name).name in TOOL_CONFIG_FILES:
         return None
-    return member
+    return tarfile.data_filter(member, dest)
 
 
 def _export(mirror: Path, commit: str, dest: Path) -> None:

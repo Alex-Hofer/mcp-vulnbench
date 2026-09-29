@@ -1,3 +1,4 @@
+import io
 import shutil
 import tarfile
 from pathlib import Path
@@ -89,6 +90,29 @@ def test_file_names_must_match_exactly(toy_cases_dir, tmp_path):
     version = case.vulnerable.model_copy(update={"locations": [wrong_case]})
     problems = check_locations(case.model_copy(update={"vulnerable": version}), sources)
     assert any("Server.py not found" in problem for problem in problems)
+
+
+def test_links_are_skipped_wherever_they_point(tmp_path):
+    data = b"print('ok')\n"
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w") as tar:
+        regular = tarfile.TarInfo("src/server.py")
+        regular.size = len(data)
+        tar.addfile(regular, io.BytesIO(data))
+        for name, kind, target in [
+            ("src/absolute", tarfile.SYMTYPE, "/etc/passwd"),
+            ("src/outside", tarfile.SYMTYPE, "../../elsewhere"),
+            ("src/inside", tarfile.SYMTYPE, "server.py"),
+            ("src/hard", tarfile.LNKTYPE, "../outside"),
+        ]:
+            link = tarfile.TarInfo(name)
+            link.type, link.linkname = kind, target
+            tar.addfile(link)
+    buffer.seek(0)
+    with tarfile.open(fileobj=buffer) as tar:
+        tar.extractall(tmp_path, filter=fetch_module._regular_files_only)
+    assert [path.name for path in (tmp_path / "src").iterdir()] == ["server.py"]
+    assert (tmp_path / "src" / "server.py").read_bytes() == data
 
 
 def test_tool_configs_of_the_analyzed_project_are_not_exported():
