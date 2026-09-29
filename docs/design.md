@@ -53,22 +53,25 @@ ground truth (case.yaml) ─► score ─► metrics.json ─► report ─► r
 
 ## Error handling
 
-Every run ends in exactly one status: `ok`, `error`, `timeout`, `unsupported` or `unavailable`. Only
-`ok` runs enter the denominators; the others are reported separately and never count as "not
+Every run ends in exactly one status: `ok`, `error`, `timeout`, `unsupported` or `unavailable`.
+Only `ok` runs enter the denominators; the others are reported separately and never count as "not
 found". A run whose tool exits 0 but writes no valid SARIF is an `error`, and so is a SARIF log
 without any run, a run without a `results` list or with `executionSuccessful: false`. A run
 directory without `meta.json` counts as not run and is repeated; a finished run is reused only
-while the case commit, `subdir`, image and command are unchanged. Docker failures (exit codes 125-127, missing images) stop the run
-without recording anything, and unavailable sources are retried on the next run.
+while the case commit, `subdir`, image and command are unchanged. Docker failures (exit codes
+125-127, missing images) stop the run without recording anything, and unavailable sources are
+retried on the next run. `run` and `bench` check the ground-truth locations before any container
+starts, so a typo in `case.yaml` stops the run instead of turning into a missed detection.
 
 ## Harness security
 
 The analyzers never execute the analyzed code (CodeQL extracts Python and JavaScript without a
 build). Containers still run with `--network none`, the sources mounted read-only, a non-root user
-and CPU/memory limits. Source archives are extracted with Python's `data` filter; links are skipped.
-An analyzer may write only into `<run>/tool/`; the harness keeps its own files (`meta.json`,
-`log.txt`, `findings.json`) one level up and reads `raw.sarif` only if it is a regular file, so a
-compromised analyzer cannot redirect harness writes through symlinks.
+without capabilities or privilege escalation (`--cap-drop ALL`, `no-new-privileges`), and CPU,
+memory and process limits. Source archives are extracted with Python's `data` filter; links are
+skipped. An analyzer may write only into `<run>/tool/`; the harness keeps its own files
+(`meta.json`, `log.txt`, `findings.json`) one level up and reads `raw.sarif` only if it is a
+regular file, so a compromised analyzer cannot redirect harness writes through symlinks.
 
 ## Tool configuration policy
 

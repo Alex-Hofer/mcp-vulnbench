@@ -75,6 +75,9 @@ def run_container(
     """Run `command` in `image`: sources read-only at /src, `out` at /out, no network."""
     name = f"mcpvb-{uuid.uuid4().hex[:12]}"
     isolation = ["--network", "none", "--cpus", "2", "--memory", "4g", "--user", container_user()]
+    # The analyzers need no privileges: no capabilities, no setuid escalation, bounded processes.
+    isolation += ["--cap-drop", "ALL", "--security-opt", "no-new-privileges"]
+    isolation += ["--pids-limit", "4096"]
     # Never pull: images are built locally; a missing image must not be fetched from a registry
     # where anyone could publish an image under this name.
     isolation += ["--pull", "never"]

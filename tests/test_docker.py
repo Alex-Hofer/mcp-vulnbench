@@ -100,3 +100,18 @@ def test_containers_never_pull_images(monkeypatch, tmp_path):
     docker.run_container("mcpvb/bandit:1.9.4", ["bandit"], tmp_path, tmp_path, 10)
     args = seen["args"]
     assert "--pull" in args and args[args.index("--pull") + 1] == "never"
+
+
+def test_containers_drop_privileges(monkeypatch, tmp_path):
+    seen: dict[str, list[str]] = {}
+
+    def fake_run(args, **kwargs):
+        seen["args"] = args
+        return subprocess.CompletedProcess(args, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(docker.subprocess, "run", fake_run)
+    docker.run_container("mcpvb/bandit:1.9.4", ["bandit"], tmp_path, tmp_path, 10)
+    options = seen["args"][: seen["args"].index("mcpvb/bandit:1.9.4")]
+    assert options[options.index("--cap-drop") + 1] == "ALL"
+    assert options[options.index("--security-opt") + 1] == "no-new-privileges"
+    assert int(options[options.index("--pids-limit") + 1]) > 0
