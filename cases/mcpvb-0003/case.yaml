@@ -1,0 +1,23 @@
+id: mcpvb-0003
+title: "Argument injection in git_diff and git_checkout of mcp-server-git"
+advisories: [CVE-2025-68144, GHSA-9xwc-hfwc-8w59]
+repo: https://github.com/modelcontextprotocol/servers
+license: MIT
+language: python
+subdir: src/git
+class: command-injection
+cwe: CWE-88
+mcp_tool: git_diff
+vulnerable:
+  commit: d9c45477cd6ff4d3456c138498dca984c8697f43
+  locations:
+    - {file: src/mcp_server_git/server.py, function: git_diff, lines: [118, 119]}
+    - {file: src/mcp_server_git/server.py, function: git_checkout, lines: [181, 183]}
+fixed:
+  commit: 9e5d5b8e4b5dd6fa4fc84cad5eb291568024aad4
+  locations:
+    - {file: src/mcp_server_git/server.py, function: git_diff, lines: [118, 124]}
+    - {file: src/mcp_server_git/server.py, function: git_checkout, lines: [186, 193]}
+source: ghsa
+split: null
+notes: "The git_diff and git_checkout tools passed target and branch_name unchecked to the git CLI, so values such as --output=/path were parsed as options (arbitrary file overwrite); the fix rejects values starting with '-' and requires them to resolve via rev_parse. Fix: https://github.com/modelcontextprotocol/servers/commit/9e5d5b8e4b5dd6fa4fc84cad5eb291568024aad4"
