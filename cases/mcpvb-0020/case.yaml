@@ -1,0 +1,23 @@
+id: mcpvb-0020
+title: "Path traversal in save_generated_slides of PPTAgent"
+advisories: [CVE-2026-42080, GHSA-pxhg-7xr2-w7xg]
+repo: https://github.com/icip-cas/PPTAgent
+license: MIT
+language: python
+subdir: null
+class: path-traversal
+cwe: CWE-22
+mcp_tool: save_generated_slides
+vulnerable:
+  commit: 858da237342f4fdf9e6c3e47baaef6f44647c8f0
+  locations:
+    - {file: pptagent/mcp_server.py, function: PPTAgentServer.register_tools.save_generated_slides, lines: [287, 303]}
+    - {file: pptagent/presentation/presentation.py, function: Presentation.save, lines: [353, 368]}
+fixed:
+  commit: 418491a9a1c02d9d93194b5973bb58df35cf9d00
+  locations:
+    - {file: pptagent/mcp_server.py, function: PPTAgentServer.register_tools.save_generated_slides, lines: [288, 304]}
+    - {file: pptagent/presentation/presentation.py, function: Presentation.save, lines: [353, 368]}
+source: ghsa
+split: null
+notes: "The save_generated_slides tool created the parent directories of the caller-supplied pptx_path and saved the presentation there (Presentation.save hands the path to pptagent_pptx's writer), so absolute or '../' paths wrote files anywhere outside the workspace; the fix resolves the path and requires it to stay inside the working directory (resolve_path_in_workspace). The same commit also fixes CVE-2026-42078 (markdown_table_to_image) and CVE-2026-42079 (eval), which are not part of this case. Fix: https://github.com/icip-cas/PPTAgent/commit/418491a9a1c02d9d93194b5973bb58df35cf9d00"
