@@ -1,0 +1,25 @@
+id: mcpvb-0012
+title: "SQL injection in get_db_table_list of doris-mcp-server"
+advisories: [CVE-2025-66336, GHSA-pqrj-4gwg-h5f7]
+repo: https://github.com/apache/doris-mcp-server
+license: Apache-2.0
+language: python
+subdir: null
+class: sql-injection
+cwe: CWE-89
+mcp_tool: get_db_table_list
+vulnerable:
+  commit: a125a2f5f831595ebfb2814f9fd7519200d90829
+  locations:
+    - {file: doris_mcp_server/utils/schema_extractor.py, function: MetadataExtractor.get_db_table_list_for_mcp, lines: [1569, 1582]}
+    - {file: doris_mcp_server/utils/schema_extractor.py, function: MetadataExtractor.get_database_tables_async, lines: [1254, 1283]}
+    - {file: doris_mcp_server/utils/db.py, function: DorisConnection.execute, lines: [77, 140]}
+fixed:
+  commit: e58361e04b42e89465c7f6a4457faf5b3aa798aa
+  locations:
+    - {file: doris_mcp_server/utils/schema_extractor.py, function: MetadataExtractor.get_db_table_list_for_mcp, lines: [1740, 1774]}
+    - {file: doris_mcp_server/utils/schema_extractor.py, function: MetadataExtractor.get_database_tables_async, lines: [1325, 1367]}
+    - {file: doris_mcp_server/utils/db.py, function: DorisConnection.execute, lines: [77, 140]}
+source: ghsa
+split: null
+notes: "The get_db_table_list metadata tool passed db_name (and catalog_name) unvalidated into f\"SHOW TABLES FROM `{db}`\" in get_database_tables_async, and MetadataExtractor._execute_query_async ran it without the caller's auth context, so DorisConnection.execute skipped SQL security validation before cursor.execute; the fix validates and backtick-escapes the identifiers in this and the other metadata paths (the advisory names no tool: get_db_table_list is chosen because it is the metadata tool whose only user-controlled identifier is the database name and the one PR #68 tests with a db_name payload; passing the auth context followed later in PR #69). Fix: https://github.com/apache/doris-mcp-server/pull/68 (squash commit e58361e04b42e89465c7f6a4457faf5b3aa798aa)"
