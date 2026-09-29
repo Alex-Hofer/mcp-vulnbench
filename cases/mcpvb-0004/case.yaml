@@ -1,0 +1,23 @@
+id: mcpvb-0004
+title: "Path traversal in wireshark_export_objects of wireshark-mcp"
+advisories: [CVE-2026-43901, GHSA-3r68-x3xc-rxpg]
+repo: https://github.com/bx33661/Wireshark-MCP
+license: MIT
+language: python
+subdir: null
+class: path-traversal
+cwe: CWE-22
+mcp_tool: wireshark_export_objects
+vulnerable:
+  commit: a38e86cd5895f417ac58535764c6b760967d6cc3
+  locations:
+    - {file: src/wireshark_mcp/tshark/_validation.py, function: ValidationMixin._validate_output_path, lines: [73, 90]}
+    - {file: src/wireshark_mcp/tshark/_extraction.py, function: ExtractionMixin.export_objects, lines: [38, 60]}
+fixed:
+  commit: cdb7aaa1ade70ff70774756b429a718bbdf43367
+  locations:
+    - {file: src/wireshark_mcp/tshark/_validation.py, function: ValidationMixin._validate_output_path, lines: [113, 158]}
+    - {file: src/wireshark_mcp/tshark/_extraction.py, function: ExtractionMixin.export_objects, lines: [81, 103]}
+source: ghsa
+split: null
+notes: "wireshark_export_objects passes the caller's dest_dir to os.makedirs and tshark --export-objects after _validate_output_path(), which enforced the directory sandbox only when WIRESHARK_MCP_ALLOWED_DIRS was set, so by default files could be written anywhere; the fix, part of the 3.0.0 release commit whose changelog names CVE-2026-43901, makes _validate_output_path reject all writes unless allowed directories are configured. Fix: https://github.com/bx33661/Wireshark-MCP/commit/cdb7aaa1ade70ff70774756b429a718bbdf43367"
