@@ -1,6 +1,7 @@
 """Command-line interface of mcp-vulnbench."""
 
 import json
+import os
 import subprocess
 from collections import Counter
 from pathlib import Path
@@ -148,6 +149,44 @@ def _load_variants_or_exit(tools_dir: Path, names: list[str] | None = None) -> l
         raise typer.Exit(code=1) from exc
 
 
+def _frozen_problem(repo_root: Path, tag: str, path: str) -> str | None:
+    """Why the files under `path` do not match the git tag `tag`, or None if they do."""
+
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", "-C", str(repo_root), *args], capture_output=True, text=True)
+
+    if git("rev-parse", "--verify", "--quiet", f"refs/tags/{tag}").returncode != 0:
+        return "the tag does not exist"
+    if git("diff", "--quiet", tag, "--", path).returncode != 0:
+        return "the files differ from the tag"
+    if git("ls-files", "--others", "--exclude-standard", "--", path).stdout.strip():
+        return "there are files that are not in the tag"
+    return None
+
+
+def _frozen_or_exit(variants: list[ToolVariant], cases: list[Case], tools_dir: Path) -> None:
+    """A variant under development runs on the test half only with its files frozen at a tag.
+
+    This keeps the published test-half numbers honest: models are developed on the development
+    half, frozen as a tag, and only then measured on the test half (see docs/methodology.md).
+    """
+    if not any(case.split == Split.TEST for case in cases):
+        return
+    for current in (v for v in variants if v.frozen_at):
+        problem = _frozen_problem(tools_dir.resolve().parent, current.frozen_at, current.dockerfile)
+        if problem is None:
+            continue
+        message = (
+            f"{current.name} runs on test cases only with {current.dockerfile} frozen at tag"
+            f" {current.frozen_at}: {problem}"
+        )
+        if os.environ.get("MCPVB_UNFROZEN_MODELS") == "1":
+            typer.echo(f"warning: {message} - running anyway, the models are not frozen", err=True)
+            continue
+        typer.echo(f"{message} (set MCPVB_UNFROZEN_MODELS=1 to run anyway)", err=True)
+        raise typer.Exit(code=1)
+
+
 def _preflight_or_exit() -> None:
     try:
         docker.preflight()
@@ -254,6 +293,7 @@ def run(
     """Run the tool variants on both versions of every case."""
     cases = _load_cases_or_exit(cases_dir, case, split)
     variants = _load_variants_or_exit(tools_dir, variant)
+    _frozen_or_exit(variants, cases, tools_dir)
     _preflight_or_exit()
     _run_all(cases, variants, cache_dir, results_dir, force)
 
@@ -356,6 +396,7 @@ def bench(
     """validate -> fetch -> run -> score -> report in one go."""
     cases = _load_cases_or_exit(cases_dir, case, split)
     variants = _load_variants_or_exit(tools_dir, variant)
+    _frozen_or_exit(variants, cases, tools_dir)
     _preflight_or_exit()
     _run_all(cases, variants, cache_dir, results_dir, force)
     _score(cases, variants, cache_dir, results_dir)

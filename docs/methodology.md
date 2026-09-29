@@ -27,7 +27,9 @@ already has a half inherits it; the other repositories are taken in
 (language, class) strata most balanced (the test half on a tie). Existing cases never move, and
 `mcpvb validate` rejects a repository in both halves. The split is committed before any model is
 run on a real case; models are developed on the development half only and measured on the test
-half once they are frozen. The report shows both halves.
+half once they are frozen. The harness enforces the freeze: a variant with `frozen_at: <tag>` in
+its `tool.yaml` runs on test cases only while its files equal that git tag. Any later change to the
+models needs a new tag and is reported as such. The report shows both halves.
 
 ## Metrics (per variant: overall, per class, per language and per half)
 - **Recall** = detected cases / cases whose vulnerable run is `ok`.

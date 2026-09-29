@@ -23,6 +23,7 @@ class ToolVariant(BaseModel):
     version: str
     image: str
     base_image: str | None = None  # image of another variant this one builds on
+    frozen_at: str | None = None  # git tag its build context must match to run on test cases
     dockerfile: str
     languages: list[Language] = Field(min_length=1)
     command: list[str] = Field(min_length=1)

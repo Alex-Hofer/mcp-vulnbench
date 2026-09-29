@@ -369,3 +369,91 @@ def test_run_files_use_lf_line_endings_on_every_system(bandit, case, tmp_path):
     folder = run_dir(results, "bandit", case.id, "vulnerable")
     for path in (folder / "meta.json", folder / "log.txt", results / "manifest.json"):
         assert b"\r\n" not in path.read_bytes(), path
+
+
+def frozen_repo(tmp_path: Path) -> Path:
+    """A benchmark checkout whose variant 'frozen' builds from models/m and is frozen at a tag."""
+    from conftest import git
+
+    root = tmp_path / "bench"
+    (root / "models" / "m").mkdir(parents=True)
+    (root / "models" / "m" / "rows.yml").write_text("rows: 1\n", encoding="utf-8")
+    (root / "tools" / "frozen").mkdir(parents=True)
+    data = yaml.safe_load(
+        (REPO_ROOT / "tools" / "bandit" / "tool.yaml").read_text(encoding="utf-8")
+    )
+    data.update(name="frozen", dockerfile="models/m", frozen_at="models-v1")
+    (root / "tools" / "frozen" / "tool.yaml").write_text(yaml.safe_dump(data), encoding="utf-8")
+    git(root, "init", "--quiet", "--initial-branch=main")
+    git(root, "config", "user.name", "Test")
+    git(root, "config", "user.email", "test@example.invalid")
+    git(root, "config", "commit.gpgsign", "false")
+    git(root, "add", "-A")
+    git(root, "commit", "--quiet", "--message", "models")
+    return root
+
+
+def run_frozen(root: Path, toy_cases_dir: Path, tmp_path: Path, half: str):
+    for case_file in toy_cases_dir.glob("*/case.yaml"):
+        data = yaml.safe_load(case_file.read_text(encoding="utf-8"))
+        data["split"] = half
+        case_file.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    args = ["run", "--cases-dir", str(toy_cases_dir), "--tools-dir", str(root / "tools")]
+    args += ["--cache-dir", str(tmp_path / "cache"), "--results-dir", str(tmp_path / "results")]
+    return CliRunner().invoke(app, args)
+
+
+def test_a_frozen_variant_runs_on_the_development_half_without_a_tag(
+    monkeypatch, toy_cases_dir, tmp_path
+):
+    root = frozen_repo(tmp_path)
+    runner = FakeRunner()
+    fake_docker(monkeypatch, "sha256:abc", runner)
+    result = run_frozen(root, toy_cases_dir, tmp_path, "dev")
+    assert result.exit_code == 0, result.output
+    assert runner.calls
+
+
+def test_a_frozen_variant_runs_on_the_test_half_only_once_tagged(
+    monkeypatch, toy_cases_dir, tmp_path
+):
+    from conftest import git
+
+    root = frozen_repo(tmp_path)
+    runner = FakeRunner()
+    fake_docker(monkeypatch, "sha256:abc", runner)
+    refused = run_frozen(root, toy_cases_dir, tmp_path, "test")
+    assert refused.exit_code == 1
+    assert "models-v1" in refused.output and runner.calls == []
+    git(root, "tag", "models-v1")
+    assert run_frozen(root, toy_cases_dir, tmp_path, "test").exit_code == 0
+    assert runner.calls
+
+
+@pytest.mark.parametrize("change", ["edit", "add"])
+def test_a_frozen_variant_refuses_models_changed_after_the_tag(
+    monkeypatch, toy_cases_dir, tmp_path, change
+):
+    from conftest import git
+
+    root = frozen_repo(tmp_path)
+    git(root, "tag", "models-v1")
+    if change == "edit":
+        (root / "models" / "m" / "rows.yml").write_text("rows: 2\n", encoding="utf-8")
+    else:
+        (root / "models" / "m" / "extra.yml").write_text("rows: 3\n", encoding="utf-8")
+    runner = FakeRunner()
+    fake_docker(monkeypatch, "sha256:abc", runner)
+    refused = run_frozen(root, toy_cases_dir, tmp_path, "test")
+    assert refused.exit_code == 1 and runner.calls == []
+    assert "models/m" in refused.output
+
+
+def test_unfrozen_models_can_run_on_the_test_half_on_request(monkeypatch, toy_cases_dir, tmp_path):
+    root = frozen_repo(tmp_path)  # no tag, e.g. a source archive without history
+    runner = FakeRunner()
+    fake_docker(monkeypatch, "sha256:abc", runner)
+    monkeypatch.setenv("MCPVB_UNFROZEN_MODELS", "1")
+    result = run_frozen(root, toy_cases_dir, tmp_path, "test")
+    assert result.exit_code == 0, result.output
+    assert "not frozen" in result.output and runner.calls
