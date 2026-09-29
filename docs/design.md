@@ -63,6 +63,19 @@ The analyzers never execute the analyzed code (CodeQL extracts Python and JavaSc
 build). Containers still run with `--network none`, the sources mounted read-only, a non-root user
 and CPU/memory limits. Source archives are extracted with Python's `data` filter; links are skipped.
 
+## Tool configuration policy
+
+The benchmark measures what an analyzer finds, not how the analyzed project configured it. A
+maintainer's `# nosec` on the vulnerable line would otherwise hide the bug from Bandit only, and a
+committed `.semgrepignore` could switch Semgrep off for the whole repository. So, for every tool:
+
+- In-source suppressions are ignored: Bandit runs with `--ignore-nosec`, Semgrep with
+  `--disable-nosem`.
+- Tool configuration files of the analyzed project (`.bandit`, `.semgrepignore`) are dropped when
+  the sources are exported.
+- Each tool's built-in defaults stay in place. Semgrep's default ignore list skips folders such as
+  `tests/`, Bandit scans them; the ground truth never lies in test folders.
+
 ## Reproducibility
 
 Tool versions and the semgrep-rules commit are pinned in `docker/*/Dockerfile` and

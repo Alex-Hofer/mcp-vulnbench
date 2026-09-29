@@ -5,5 +5,5 @@ version: "1.178.0"
 image: mcpvb/semgrep:1.178.0-rules-a84ff9c
 dockerfile: docker/semgrep
 languages: [python]
-command: [semgrep, scan, --config, /rules/default, --sarif, --output, "{out}/raw.sarif", --metrics, "off", --disable-version-check, --timeout, "0", "{src}"]
+command: [semgrep, scan, --config, /rules/default, --sarif, --output, "{out}/raw.sarif", --metrics, "off", --disable-version-check, --disable-nosem, --timeout, "0", "{src}"]
 timeout_s: 1800

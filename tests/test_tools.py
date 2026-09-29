@@ -54,3 +54,9 @@ def test_bad_cwe_override_is_rejected(tmp_path):
     )
     with pytest.raises(ToolError, match="not a CWE"):
         load_variant(folder / "tool.yaml")
+
+
+def test_in_source_suppressions_are_ignored():
+    assert "--ignore-nosec" in load_variant(TOOLS / "bandit" / "tool.yaml").command
+    for name in ("semgrep-default", "semgrep-mcp"):
+        assert "--disable-nosem" in load_variant(TOOLS / name / "tool.yaml").command

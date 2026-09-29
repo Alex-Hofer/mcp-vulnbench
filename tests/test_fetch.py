@@ -1,3 +1,4 @@
+import tarfile
 from pathlib import Path
 
 import pytest
@@ -86,3 +87,9 @@ def test_file_names_must_match_exactly(toy_cases_dir, tmp_path):
     version = case.vulnerable.model_copy(update={"locations": [wrong_case]})
     problems = check_locations(case.model_copy(update={"vulnerable": version}), sources)
     assert any("Server.py not found" in problem for problem in problems)
+
+
+def test_tool_configs_of_the_analyzed_project_are_not_exported():
+    for name in (".bandit", "src/.semgrepignore"):
+        assert fetch_module._regular_files_only(tarfile.TarInfo(name), "dest") is None, name
+    assert fetch_module._regular_files_only(tarfile.TarInfo("src/server.py"), "dest") is not None

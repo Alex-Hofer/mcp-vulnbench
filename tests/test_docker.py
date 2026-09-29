@@ -6,6 +6,8 @@ from typer.testing import CliRunner
 
 from mcpvb import docker
 from mcpvb.cli import app
+from mcpvb.normalize import parse_sarif
+from mcpvb.schema import Language
 from mcpvb.tools import load_variant
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -59,3 +61,29 @@ def test_images_stops_early_without_docker(monkeypatch):
     result = CliRunner().invoke(app, ["images", "--tools-dir", str(REPO_ROOT / "tools")])
     assert result.exit_code == 2
     assert "start Docker Desktop" in result.output
+
+
+SUPPRESSED = {
+    "bandit": ("B602", "# nosec"),
+    "semgrep-default": ("subprocess-shell-true", "# nosemgrep"),
+}
+
+
+@pytest.mark.docker
+@pytest.mark.parametrize("name", sorted(SUPPRESSED))
+def test_in_source_suppressions_do_not_hide_findings(name, tmp_path):
+    rule, comment = SUPPRESSED[name]
+    variant = load_variant(REPO_ROOT / "tools" / name / "tool.yaml")
+    if not docker.image_id(variant.image):
+        pytest.skip(f"image {variant.image} not built: uv run mcpvb images --variant {name}")
+    source, out = tmp_path / "src", tmp_path / "out"
+    source.mkdir()
+    out.mkdir()
+    shell_call = 'subprocess.run(f"ping {host}", shell=True)'
+    code = f"import subprocess\n\n\ndef ping(host):\n    return {shell_call}  {comment}\n"
+    (source / "server.py").write_text(code, encoding="utf-8")
+    command = variant.render_command(Language.PYTHON)
+    result = docker.run_container(variant.image, command, source, out, 600)
+    assert result.exit_code == 0, result.output
+    findings = parse_sarif(out / "raw.sarif", name, "mcpvb-0001", "vulnerable")
+    assert any(rule in finding.rule_id and finding.line == 5 for finding in findings)

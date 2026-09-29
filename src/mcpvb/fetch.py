@@ -8,11 +8,12 @@ import shutil
 import subprocess
 import tarfile
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from mcpvb.schema import Case
 
 DONE_MARKER = ".mcpvb-fetched"
+TOOL_CONFIG_FILES = frozenset({".bandit", ".semgrepignore"})
 
 
 class FetchError(Exception):
@@ -52,9 +53,15 @@ def _ensure_mirror(url: str, cache: Path) -> Path:
 
 
 def _regular_files_only(member: tarfile.TarInfo, dest: str) -> tarfile.TarInfo | None:
-    """Safe extraction ('data' filter) that also skips links: analyzers only need regular files."""
+    """Safe extraction ('data' filter) that also skips links: analyzers only need regular files.
+
+    Tool configurations of the analyzed project are dropped too: the benchmark measures what a
+    tool finds, not how the project configured it (see docs/design.md, tool configuration policy).
+    """
     member = tarfile.data_filter(member, dest)
-    return None if member.issym() or member.islnk() else member
+    if member.issym() or member.islnk() or PurePosixPath(member.name).name in TOOL_CONFIG_FILES:
+        return None
+    return member
 
 
 def _export(mirror: Path, commit: str, dest: Path) -> None:

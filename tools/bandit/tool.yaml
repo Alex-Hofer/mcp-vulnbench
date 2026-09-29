@@ -5,7 +5,7 @@ version: "1.9.4"
 image: mcpvb/bandit:1.9.4
 dockerfile: docker/bandit
 languages: [python]
-command: [bandit, --recursive, "{src}", --format, sarif, --output, "{out}/raw.sarif", --exit-zero, --quiet]
+command: [bandit, --recursive, "{src}", --format, sarif, --output, "{out}/raw.sarif", --exit-zero, --quiet, --ignore-nosec]
 timeout_s: 900
 cwe_overrides:
   B102: CWE-95   # exec_used: tagged CWE-78 by Bandit
