@@ -117,3 +117,19 @@ def test_report_files_use_lf_line_endings_on_every_system(tmp_path):
     write_report(tmp_path)
     for name in ("report.md", "recall.svg"):
         assert b"\r\n" not in (tmp_path / name).read_bytes(), name
+
+
+def test_report_shows_both_halves():
+    metrics = copy.deepcopy(METRICS)
+    metrics["variants"]["bandit"]["by_split"] = {
+        "dev": OVERALL,
+        "test": {**OVERALL, "recall": None},
+    }
+    text = render_report(metrics)
+    assert "## By split" in text
+    assert "| bandit | dev | 2 | 1 | 50 % | 0 % (0/1) | 55.56 |" in text
+    assert "| bandit | test | 2 | 1 | – |" in text
+
+
+def test_report_without_halves_has_no_split_section():
+    assert "## By split" not in render_report(METRICS)

@@ -29,7 +29,7 @@ already has a half inherits it; the other repositories are taken in
 run on a real case; models are developed on the development half only and measured on the test
 half once they are frozen. The report shows both halves.
 
-## Metrics (per variant: overall, per class, per language)
+## Metrics (per variant: overall, per class, per language and per half)
 - **Recall** = detected cases / cases whose vulnerable run is `ok`.
 - **Fix recognition** = detected cases without a persisting finding / detected cases whose fixed
   run is `ok`. A finding *persists* if it has the case's class and lies inside a fixed location.

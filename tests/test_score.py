@@ -246,3 +246,31 @@ def test_score_files_use_lf_line_endings_on_every_system(toy_cases_dir, tmp_path
     assert len(written) == 5
     for path in written:
         assert b"\r\n" not in path.read_bytes(), path
+
+
+def test_summarize_reports_each_half_like_overall():
+    ok = Status.OK
+    halves = {"mcpvb-0001": "dev", "mcpvb-0002": "dev", "mcpvb-0003": "test"}
+    outcomes = [
+        score_case("v", case(cid).model_copy(update={"split": half}), ok, ok, found, [])
+        for (cid, half), found in zip(
+            halves.items(),
+            [[finding(15, case_id="mcpvb-0001")], [], [finding(15, case_id="mcpvb-0003")]],
+            strict=True,
+        )
+    ]
+    kloc = dict.fromkeys(halves, 1.0)
+    summary = summarize(outcomes, {"v": [finding(15, case_id=c) for c in halves]}, kloc)
+    by_split = summary["variants"]["v"]["by_split"]
+    assert (by_split["dev"]["cases_ok"], by_split["dev"]["detected"]) == (2, 1)
+    assert (by_split["test"]["cases_ok"], by_split["test"]["recall"]) == (1, 1.0)
+    assert by_split["dev"]["alarms_per_kloc"] == 1.0
+    assert summary["cases"][0]["split"] == "dev"
+
+
+def test_a_half_without_ok_runs_has_no_rates():
+    outcome = score_case(
+        "v", CASE.model_copy(update={"split": "test"}), Status.ERROR, Status.ERROR, [], []
+    )
+    test_half = summarize([outcome], {}, {})["variants"]["v"]["by_split"]["test"]
+    assert test_half["recall"] is None and test_half["alarms_per_kloc"] is None

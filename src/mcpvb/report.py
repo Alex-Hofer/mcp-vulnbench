@@ -92,6 +92,7 @@ def render_report(metrics: dict, manifest: dict | None = None) -> str:
         by_class = variants[name]["by_class"]
         cells = [_share(by_class.get(k)) for k in classes]
         lines.append(f"| {name} | " + " | ".join(cells) + " |")
+    lines += _split_table(variants, names)
     lines += _status_table(metrics, names) + _details_table(variants, names)
     lines += ["", "## Cases", "", LEGEND, "", "| Case | Class | " + " | ".join(names) + " |"]
     lines.append("|---|---|" + "---|" * len(names))
@@ -108,6 +109,36 @@ def render_report(metrics: dict, manifest: dict | None = None) -> str:
         "",
     ]
     return "\n".join(lines)
+
+
+def _split_table(variants: dict, names: list[str]) -> list[str]:
+    """The overall figures per half (development and test), if the cases are split."""
+    halves = sorted({h for name in names for h in variants[name].get("by_split", {})})
+    if not halves:
+        return []
+    lines = ["", "## By split", ""]
+    lines.append(
+        "| Variant | Split | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC |"
+    )
+    lines.append("|---|---|---:|---:|---:|---:|---:|")
+    for name in names:
+        for half in halves:
+            block = variants[name].get("by_split", {}).get(half)
+            if block is None:
+                continue
+            fix = _counted(
+                block["fix_recognition"], block["fix_recognized"], block.get("fix_assessed")
+            )
+            cells = [
+                half,
+                str(block["cases_ok"]),
+                str(block["detected"]),
+                _pct(block["recall"]),
+                fix,
+                _num(block["alarms_per_kloc"]),
+            ]
+            lines.append(f"| {name} | " + " | ".join(cells) + " |")
+    return lines
 
 
 def _status_table(metrics: dict, names: list[str]) -> list[str]:

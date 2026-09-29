@@ -60,6 +60,7 @@ class CaseOutcome:
     detected_file_level: bool | None
     detected_any_class: bool | None
     persisting: bool | None
+    split: str | None = None
 
 
 def score_case(
@@ -90,6 +91,7 @@ def score_case(
         if ok_vulnerable
         else None,
         persisting=persisting,
+        split=str(case.split) if case.split else None,
     )
 
 
@@ -110,6 +112,41 @@ def _recall(outcomes: list[CaseOutcome], attribute: str = "detected") -> dict:
     return {"cases_ok": len(scored), "detected": hits, "recall": _rate(hits, len(scored))}
 
 
+def _block(mine: list[CaseOutcome], found: list[Finding], kloc: dict[str, float]) -> dict:
+    """The overall metrics of one variant on a set of cases (all of them, or one half)."""
+    assessed = [o for o in mine if o.detected and o.persisting is not None]
+    recognized = sum(1 for o in assessed if not o.persisting)
+    runs = [
+        status
+        for o in mine
+        for status in (o.status_vulnerable, o.status_fixed)
+        if status != Status.UNSUPPORTED
+    ]
+    ok_cases = sorted({o.case_id for o in mine if o.status_vulnerable == Status.OK})
+    # a case without a line count (sources unavailable) is left out of the alarm figures
+    alarm_cases = [cid for cid in ok_cases if cid in kloc]
+    languages = {o.case_id: o.language for o in mine}
+    findings = [
+        f
+        for f in found
+        if f.case_id in alarm_cases and _in_alarm_scope(f.file, languages[f.case_id])
+    ]
+    classified = [f for f in findings if f.vuln_class is not None]
+    per_case = [sum(1 for f in classified if f.case_id == cid) for cid in alarm_cases]
+    total_kloc = sum(kloc[cid] for cid in alarm_cases)
+    return {
+        **_recall(mine),
+        "fix_recognized": recognized,
+        "fix_recognition": _rate(recognized, len(assessed)),
+        "fix_assessed": len(assessed),
+        "alarms_per_kloc": round(len(classified) / total_kloc, 2) if total_kloc else None,
+        "alarms_median_per_case": median(per_case) if per_case else None,
+        "unclassified_findings": len(findings) - len(classified),
+        "error_rate": _rate(sum(1 for s in runs if s != Status.OK), len(runs)),
+        "unsupported_cases": sum(1 for o in mine if o.status_vulnerable == Status.UNSUPPORTED),
+    }
+
+
 def summarize(
     outcomes: list[CaseOutcome],
     vulnerable_findings: dict[str, list[Finding]],
@@ -119,40 +156,10 @@ def summarize(
     variants: dict[str, dict] = {}
     for name in sorted({o.variant for o in outcomes}):
         mine = [o for o in outcomes if o.variant == name]
-        assessed = [o for o in mine if o.detected and o.persisting is not None]
-        recognized = sum(1 for o in assessed if not o.persisting)
-        runs = [
-            status
-            for o in mine
-            for status in (o.status_vulnerable, o.status_fixed)
-            if status != Status.UNSUPPORTED
-        ]
-        ok_cases = sorted({o.case_id for o in mine if o.status_vulnerable == Status.OK})
-        # a case without a line count (sources unavailable) is left out of the alarm figures
-        alarm_cases = [cid for cid in ok_cases if cid in kloc]
-        languages = {o.case_id: o.language for o in mine}
-        findings = [
-            f
-            for f in vulnerable_findings.get(name, [])
-            if f.case_id in alarm_cases and _in_alarm_scope(f.file, languages[f.case_id])
-        ]
-        classified = [f for f in findings if f.vuln_class is not None]
-        per_case = [sum(1 for f in classified if f.case_id == cid) for cid in alarm_cases]
-        total_kloc = sum(kloc[cid] for cid in alarm_cases)
+        found = vulnerable_findings.get(name, [])
+        halves = sorted({o.split for o in mine if o.split})
         variants[name] = {
-            "overall": {
-                **_recall(mine),
-                "fix_recognized": recognized,
-                "fix_recognition": _rate(recognized, len(assessed)),
-                "fix_assessed": len(assessed),
-                "alarms_per_kloc": round(len(classified) / total_kloc, 2) if total_kloc else None,
-                "alarms_median_per_case": median(per_case) if per_case else None,
-                "unclassified_findings": len(findings) - len(classified),
-                "error_rate": _rate(sum(1 for s in runs if s != Status.OK), len(runs)),
-                "unsupported_cases": sum(
-                    1 for o in mine if o.status_vulnerable == Status.UNSUPPORTED
-                ),
-            },
+            "overall": _block(mine, found, kloc),
             "by_class": {
                 k.value: _recall([o for o in mine if o.vuln_class == k.value])
                 for k in VulnClass
@@ -162,6 +169,7 @@ def summarize(
                 language: _recall([o for o in mine if o.language == language])
                 for language in sorted({o.language for o in mine})
             },
+            "by_split": {h: _block([o for o in mine if o.split == h], found, kloc) for h in halves},
             "lenient": {
                 "recall_file_level": _recall(mine, "detected_file_level")["recall"],
                 "recall_any_class": _recall(mine, "detected_any_class")["recall"],
