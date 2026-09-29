@@ -1,0 +1,22 @@
+id: mcpvb-0006
+title: "Path traversal in git_init of mcp-server-git"
+advisories: [CVE-2025-68143, GHSA-5cgr-j3jf-jw3v]
+repo: https://github.com/modelcontextprotocol/servers
+license: MIT
+language: python
+subdir: src/git
+class: path-traversal
+cwe: CWE-22
+mcp_tool: git_init
+vulnerable:
+  commit: f1f6f3473de4569ce6ff2bd1c0200e92785524b0
+  locations:
+    - {file: src/mcp_server_git/server.py, function: git_init, lines: [186, 191]}
+    - {file: src/mcp_server_git/server.py, function: serve.call_tool, lines: [353, 469]}
+fixed:
+  commit: eac56e7bcde48fb64d5a973924d05d69a7d876e6
+  locations:
+    - {file: src/mcp_server_git/server.py, function: serve.call_tool, lines: [343, 451]}
+source: ghsa
+split: null
+notes: "The git_init tool passed repo_path unchecked to git.Repo.init(mkdir=True), creating repositories at arbitrary filesystem locations outside the configured --repository; the fix removes the tool (git_init and its dispatch in call_tool). Fix: https://github.com/modelcontextprotocol/servers/commit/eac56e7bcde48fb64d5a973924d05d69a7d876e6 (PR #2757). Caveat: the fixed call_tool still passes repo_path of the remaining tools without a --repository check (CVE-2025-68145, fixed later), so a path-traversal finding there may be a true positive for that bug rather than a missed fix."
