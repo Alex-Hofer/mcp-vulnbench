@@ -1,0 +1,23 @@
+id: mcpvb-0018
+title: "Path traversal via the ALLOWED_PATHS prefix check in write_file_tool of filesystem-mcp-server"
+advisories: [CVE-2026-7400, GHSA-wgg9-6667-c9w2]
+repo: https://github.com/geekgod382/filesystem-mcp-server
+license: MIT
+language: python
+subdir: null
+class: path-traversal
+cwe: CWE-22
+mcp_tool: write_file_tool
+vulnerable:
+  commit: 319c01c5df909a86284286cfb91affd67efbc0ed
+  locations:
+    - {file: server.py, function: is_path_allowed, lines: [29, 32]}
+    - {file: server.py, function: write_file_tool, lines: [300, 330]}
+fixed:
+  commit: 45364545fc60dc80aadcd4379f08042d3d3d292e
+  locations:
+    - {file: src/config.py, function: is_path_allowed, lines: [19, 29]}
+    - {file: src/tools.py, function: write_file_tool, lines: [87, 117]}
+source: ghsa
+split: null
+notes: "is_path_allowed, the guard of all file tools, compared os.path.abspath(path) with a plain startswith against the home directory, so sibling paths such as /home/alice_backup/x (and symlinks) passed and write_file_tool created and wrote files outside the allowed root; the fix compares realpath results with a trailing separator. The fix commit also moves the tool functions unchanged from server.py to src/tools.py and the guard to src/config.py. Fix: https://github.com/geekgod382/filesystem-mcp-server/commit/45364545fc60dc80aadcd4379f08042d3d3d292e"
