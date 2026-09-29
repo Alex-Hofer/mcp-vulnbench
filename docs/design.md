@@ -8,11 +8,12 @@ tool configurations as data, execution in Docker, explicit statuses for failures
 ## Why
 
 MCP servers expose file-system, shell and network operations to LLM agents. Tool arguments come from
-a model that prompt injection can steer, so every tool argument is untrusted input. Most published
-MCP CVEs are classic code bugs on that path: command injection, path traversal, SSRF. Popular MCP
-scanners inspect the tool metadata of running servers and never read the code; generic SAST reads
-the code but does not know that MCP tool arguments are untrusted. This benchmark measures what
-actually finds these bugs.
+a model that prompt injection can steer, so every tool argument is untrusted input; the same holds
+for everything else a server receives through the protocol, such as resource URIs and transport
+headers. Most published MCP CVEs are classic code bugs on that path: command injection, path
+traversal, SSRF. Popular MCP scanners inspect the tool metadata of running servers and never read
+the code; generic SAST reads the code but does not know that MCP tool arguments are untrusted. This
+benchmark measures what actually finds these bugs.
 
 ## Scope (v1)
 

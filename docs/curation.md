@@ -7,7 +7,10 @@ A case is added only if all of these hold:
 2. The repository has an OSI-approved license (SPDX id listed in `src/mcpvb/licenses.py`).
 3. The vulnerable and the fixed commit can be identified exactly.
 4. The vulnerability belongs to one of the five classes (see [design.md](design.md)).
-5. It is in the server code and reachable from an MCP tool handler.
+5. It is in the server code, and the tainted value is input the server receives through MCP: a
+   tool argument (most cases), a resource URI or prompt argument supplied by the client, or a
+   value of the MCP transport such as an HTTP header. Data the server fetches from third parties
+   (for example an API response) does not count, even if a tool call triggers the fetch.
 6. The fix changes code, not only documentation or configuration.
 
 At most three cases per repository.
@@ -51,7 +54,7 @@ language: python
 subdir: null
 class: command-injection
 cwe: CWE-78
-mcp_tool: <tool name>
+mcp_tool: <tool name, or the handler of a resource or prompt request>
 vulnerable:
   commit: <40-character sha>
   locations:
