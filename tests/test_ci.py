@@ -21,3 +21,10 @@ def test_actions_are_pinned_to_commit_shas():
 
 def test_workflow_token_is_read_only():
     assert load_workflow()["permissions"] == {"contents": "read"}
+
+
+def test_local_python_matches_ci():
+    local = (WORKFLOW.parents[2] / ".python-version").read_text(encoding="utf-8").strip()
+    jobs = load_workflow()["jobs"].values()
+    steps = [step for job in jobs for step in job["steps"] if "setup-uv" in step.get("uses", "")]
+    assert {step["with"]["python-version"] for step in steps} == {local}
