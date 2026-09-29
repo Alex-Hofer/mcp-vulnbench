@@ -239,8 +239,11 @@ def _score(
             kloc[current.id] = count_kloc(
                 fetch_case(current, cache_dir).vulnerable, current.language
             )
-        except FetchError:
-            kloc[current.id] = 0.0
+        except FetchError as exc:
+            typer.echo(
+                f"warning: {current.id}: {exc} - left out of the alarm figures; run `mcpvb fetch`",
+                err=True,
+            )
         for variant in variants:
             overrides = variant.cwe_overrides
             status_v, found_v = load_run(

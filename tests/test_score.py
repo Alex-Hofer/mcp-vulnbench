@@ -183,6 +183,22 @@ def test_alarm_figures_ignore_findings_in_skipped_folders():
     assert overall["unclassified_findings"] == 0
 
 
+def test_alarm_figures_leave_out_cases_without_a_line_count():
+    ok = Status.OK
+    outcomes = [score_case("v", case(cid), ok, ok, [], []) for cid in ("mcpvb-0001", "mcpvb-0002")]
+    findings = [
+        finding(30, case_id="mcpvb-0001"),
+        finding(30, case_id="mcpvb-0002"),
+        finding(31, None, case_id="mcpvb-0002"),
+    ]
+    # the sources of mcpvb-0002 were unavailable, so it has no KLOC
+    summary = summarize(outcomes, {"v": findings}, {"mcpvb-0001": 1.0})
+    overall = summary["variants"]["v"]["overall"]
+    assert overall["alarms_per_kloc"] == 1.0
+    assert overall["alarms_median_per_case"] == 1
+    assert overall["unclassified_findings"] == 0
+
+
 def test_alarm_figures_ignore_findings_outside_the_case_language():
     outcome = score_case("v", CASE, Status.OK, Status.OK, [finding(15)], [])
     other_languages = [

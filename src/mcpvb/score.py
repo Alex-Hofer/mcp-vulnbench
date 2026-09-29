@@ -128,15 +128,17 @@ def summarize(
             if status != Status.UNSUPPORTED
         ]
         ok_cases = sorted({o.case_id for o in mine if o.status_vulnerable == Status.OK})
+        # a case without a line count (sources unavailable) is left out of the alarm figures
+        alarm_cases = [cid for cid in ok_cases if cid in kloc]
         languages = {o.case_id: o.language for o in mine}
         findings = [
             f
             for f in vulnerable_findings.get(name, [])
-            if f.case_id in ok_cases and _in_alarm_scope(f.file, languages[f.case_id])
+            if f.case_id in alarm_cases and _in_alarm_scope(f.file, languages[f.case_id])
         ]
         classified = [f for f in findings if f.vuln_class is not None]
-        per_case = [sum(1 for f in classified if f.case_id == cid) for cid in ok_cases]
-        total_kloc = sum(kloc.get(cid, 0.0) for cid in ok_cases)
+        per_case = [sum(1 for f in classified if f.case_id == cid) for cid in alarm_cases]
+        total_kloc = sum(kloc[cid] for cid in alarm_cases)
         variants[name] = {
             "overall": {
                 **_recall(mine),
