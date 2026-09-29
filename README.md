@@ -11,9 +11,13 @@ is measured on finding the bug *and* on recognizing the fix.
 
 ## Quick start
 
+Requires [uv](https://docs.astral.sh/uv/) and a running Docker daemon.
+
 ```bash
 uv sync
-uv run mcpvb --help
+uv run mcpvb images          # builds the analyzer images locally (never pushed)
+uv run mcpvb bench           # fetch -> run -> score -> report
+open results/latest/report.md
 ```
 
 ## Documentation

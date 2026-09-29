@@ -236,3 +236,22 @@ def score(
     variants = _load_variants_or_exit(tools_dir, variant)
     _score(cases, variants, cache_dir, results_dir)
     typer.echo(f"wrote {results_dir / 'metrics.json'}")
+
+
+@app.command()
+def bench(
+    cases_dir: Path = CASES_DIR,
+    tools_dir: Path = TOOLS_DIR,
+    cache_dir: Path = CACHE_DIR,
+    results_dir: Path = RESULTS_DIR,
+    variant: list[str] | None = VARIANT_OPTION,
+    case: list[str] | None = CASE_OPTION,
+    force: bool = FORCE_OPTION,
+) -> None:
+    """validate -> fetch -> run -> score -> report in one go."""
+    cases = _load_cases_or_exit(cases_dir, case)
+    variants = _load_variants_or_exit(tools_dir, variant)
+    _preflight_or_exit()
+    _run_all(cases, variants, cache_dir, results_dir, force)
+    _score(cases, variants, cache_dir, results_dir)
+    typer.echo(f"report: {write_report(results_dir)}")
