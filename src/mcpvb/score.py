@@ -144,6 +144,7 @@ def summarize(
                 **_recall(mine),
                 "fix_recognized": recognized,
                 "fix_recognition": _rate(recognized, len(assessed)),
+                "fix_assessed": len(assessed),
                 "alarms_per_kloc": round(len(classified) / total_kloc, 2) if total_kloc else None,
                 "alarms_median_per_case": median(per_case) if per_case else None,
                 "unclassified_findings": len(findings) - len(classified),

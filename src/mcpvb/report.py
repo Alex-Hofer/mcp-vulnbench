@@ -29,11 +29,17 @@ def _pct(value: float | None) -> str:
     return "–" if value is None else f"{value * 100:.0f} %"
 
 
-def _share(entry: dict | None) -> str:
-    """Recall with its counts: per class there are only a handful of cases."""
-    if not entry or entry.get("recall") is None:
+def _counted(rate: float | None, hits: int | None, total: int | None) -> str:
+    """A rate with its counts: with few cases, a percentage alone overstates the evidence."""
+    if rate is None:
         return "–"
-    return f"{_pct(entry['recall'])} ({entry['detected']}/{entry['cases_ok']})"
+    return _pct(rate) if total is None else f"{_pct(rate)} ({hits}/{total})"
+
+
+def _share(entry: dict | None) -> str:
+    if not entry:
+        return "–"
+    return _counted(entry.get("recall"), entry.get("detected"), entry.get("cases_ok"))
 
 
 def _num(value: float | None) -> str:
@@ -74,7 +80,7 @@ def render_report(metrics: dict, manifest: dict | None = None) -> str:
             str(o["cases_ok"]),
             str(o["detected"]),
             _pct(o["recall"]),
-            _pct(o["fix_recognition"]),
+            _counted(o["fix_recognition"], o["fix_recognized"], o.get("fix_assessed")),
             _num(o["alarms_per_kloc"]),
             _pct(o["error_rate"]),
         ]

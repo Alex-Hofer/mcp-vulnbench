@@ -127,7 +127,8 @@ def test_summarize_computes_the_documented_metrics():
     kloc = {"mcpvb-0001": 0.5, "mcpvb-0002": 0.5, "mcpvb-0003": 1.0, "mcpvb-0004": 2.0}
     overall = summarize(outcomes, vulnerable_findings, kloc)["variants"]["v"]["overall"]
     assert (overall["cases_ok"], overall["detected"], overall["recall"]) == (3, 2, 0.6667)
-    assert (overall["fix_recognized"], overall["fix_recognition"]) == (1, 0.5)
+    assert (overall["fix_recognized"], overall["fix_assessed"]) == (1, 2)
+    assert overall["fix_recognition"] == 0.5
     assert overall["alarms_per_kloc"] == 1.0  # 2 classified findings / 2.0 KLOC of the ok cases
     assert overall["unclassified_findings"] == 1
     assert overall["error_rate"] == 0.125  # 1 of 8 runs
