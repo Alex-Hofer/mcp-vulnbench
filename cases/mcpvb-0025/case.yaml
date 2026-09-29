@@ -1,0 +1,21 @@
+id: mcpvb-0025
+title: "SQL injection in the read_resource handler of mysql_mcp_server"
+advisories: [CVE-2026-11529, GHSA-mvq4-39wx-6h5g]
+repo: https://github.com/designcomputer/mysql_mcp_server
+license: MIT
+language: python
+subdir: null
+class: sql-injection
+cwe: CWE-89
+mcp_tool: read_resource
+vulnerable:
+  commit: f24cb5cea37d6eeebba9affc9f0d945a8ec77d1a
+  locations:
+    - {file: src/mysql_mcp_server/server.py, function: read_resource, lines: [125, 147]}
+fixed:
+  commit: 9860d521cce246f0dfe1ab885bac2fdb1a7d18d4
+  locations:
+    - {file: src/mysql_mcp_server/server.py, function: read_resource, lines: [181, 218]}
+source: ghsa
+split: null
+notes: "read_resource is the MCP resources/read handler, not a tool: it took the table name from the client-supplied resource URI (mysql://<table>/data) and interpolated it unquoted into 'SELECT * FROM {table} LIMIT 100' for cursor.execute, so crafted URIs injected SQL; the fix validates identifiers against ^[a-zA-Z0-9_$]+$ (new helper validate_identifier) and backtick-quotes them. The execute_sql tool runs arbitrary SQL by design and is not part of the case. The advisory lists CWE-74, but the sink is SQL text, so the case uses CWE-89. Fix: https://github.com/designcomputer/mysql_mcp_server/commit/9860d521cce246f0dfe1ab885bac2fdb1a7d18d4 (squash commit of the v0.3.0 merge; the advisory's patch 080bef9 is from the unmerged PR #86)"
