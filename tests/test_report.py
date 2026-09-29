@@ -1,7 +1,9 @@
 import copy
 import json
 
-from mcpvb.report import chart_figure, render_report, write_report
+import matplotlib
+
+from mcpvb.report import chart_figure, render_chart, render_report, write_report
 
 OVERALL = {
     "cases_ok": 2,
@@ -101,3 +103,9 @@ def test_case_table_names_the_status_of_unassessed_runs():
     metrics = copy.deepcopy(METRICS)
     metrics["cases"][1].update(status_vulnerable="timeout", detected=None)
     assert "| mcpvb-9002 | path-traversal | t/o |" in render_report(metrics)
+
+
+def test_rendering_the_chart_keeps_global_matplotlib_settings(tmp_path):
+    with matplotlib.rc_context({"svg.hashsalt": None}):
+        render_chart(METRICS, tmp_path / "recall.svg")
+        assert matplotlib.rcParams["svg.hashsalt"] is None
