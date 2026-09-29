@@ -1,6 +1,6 @@
 id: mcpvb-0002
 title: "Command injection in the kubectl and helm tools of mcp-kubernetes-server"
-advisories: [CVE-2025-59377, GHSA-4hqq-7q79-932p]
+advisories: [CVE-2025-59377, GHSA-4hqq-7q79-932p, CVE-2025-59376, GHSA-hjm5-xgj8-vwj6]
 repo: https://github.com/feiskyer/mcp-kubernetes-server
 license: Apache-2.0
 language: python
@@ -20,4 +20,4 @@ fixed:
     - {file: src/mcp_kubernetes_server/command.py, function: ShellProcess.exec, lines: [27, 46]}
 source: ghsa
 split: null
-notes: "The kubectl and helm tools passed their command string to ShellProcess, which ran it with subprocess.run(shell=True), so shell metacharacters executed arbitrary commands even in read-only mode; the fix runs an argument list without a shell (the unchanged handlers still pass a string, which the fixed ShellProcess rejects). Fix: https://github.com/feiskyer/mcp-kubernetes-server/commit/26267fa627d7273b9fa28c290169ef5450e9f096 (merged via ddcceb6, released in v0.1.12)"
+notes: "The kubectl and helm tools passed their command string to ShellProcess, which ran it with subprocess.run(shell=True), so shell metacharacters executed arbitrary commands even in read-only mode; the fix runs an argument list without a shell (the unchanged handlers still pass a string, which the fixed ShellProcess rejects). CVE-2025-59376 describes the same bug as a bypass of --disable-write/--disable-delete by chaining commands (only the first token was checked) and has the same fix. Fix: https://github.com/feiskyer/mcp-kubernetes-server/commit/26267fa627d7273b9fa28c290169ef5450e9f096 (merged via ddcceb6, released in v0.1.12)"
