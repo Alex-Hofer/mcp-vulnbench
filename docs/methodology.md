@@ -3,8 +3,11 @@
 ## Ground truth
 Each case lists, for the vulnerable and for the fixed commit, the functions involved in the
 vulnerability: `file` (relative to `subdir` if set) and an inclusive line range `[start, end]` from
-the first decorator line to the last line of the function. The locations are the functions that
-the fix changed.
+the first decorator line to the last line of the function. The locations are the functions on the
+vulnerable path that the fix changed, plus the function that contains the sink reached from the
+MCP tool (analyzers usually report the sink line), even if the fix left it unchanged. The fixed
+version lists the same functions as they exist after the fix, so an analyzer that keeps reporting
+an unchanged sink is counted as not recognizing the fix.
 
 ## Matching
 A finding *f* of a variant hits a location *L* of case *c* if `f.file == L.file`,

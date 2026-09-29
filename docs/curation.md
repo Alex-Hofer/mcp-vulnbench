@@ -32,7 +32,9 @@ detection.
 4. Get the function ranges of the affected file in both versions:
    `git -C .cache/curate/<name> show <sha>:<path> > .cache/curate/snippet.py`
    `uv run mcpvb functions .cache/curate/snippet.py`
-   A location covers a function the fix changed, from its first decorator line to its last line.
+   A location covers a function from its first decorator line to its last line. List the functions
+   on the vulnerable path that the fix changed plus the function containing the sink reached from
+   the MCP tool, even if unchanged (at most four); the fixed version lists the same functions.
    In monorepos set `subdir` to the server folder; `file` is then relative to `subdir`.
 5. Write `cases/mcpvb-NNNN/case.yaml` (template below), then run
    `uv run mcpvb validate` and `uv run mcpvb fetch --case mcpvb-NNNN`.
