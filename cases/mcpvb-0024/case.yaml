@@ -1,0 +1,25 @@
+id: mcpvb-0024
+title: "SSRF via path parameters in the OpenAPI tools of FastMCP"
+advisories: [CVE-2026-32871, GHSA-vv7q-7jx5-f767]
+repo: https://github.com/PrefectHQ/fastmcp
+license: Apache-2.0
+language: python
+subdir: null
+class: ssrf
+cwe: CWE-918
+mcp_tool: OpenAPITool.run
+vulnerable:
+  commit: c861862aededc7294cea5634d77e6926444ca101
+  locations:
+    - {file: src/fastmcp/utilities/openapi/director.py, function: RequestDirector._build_url, lines: [194, 216]}
+    - {file: src/fastmcp/utilities/openapi/director.py, function: RequestDirector.build, lines: [23, 78]}
+    - {file: src/fastmcp/server/providers/openapi/components.py, function: OpenAPITool.run, lines: [179, 253]}
+fixed:
+  commit: 40bdfb6b1de0ce30609ee9ba5bb95ecd04a9fb71
+  locations:
+    - {file: src/fastmcp/utilities/openapi/director.py, function: RequestDirector._build_url, lines: [194, 218]}
+    - {file: src/fastmcp/utilities/openapi/director.py, function: RequestDirector.build, lines: [23, 78]}
+    - {file: src/fastmcp/server/providers/openapi/components.py, function: OpenAPITool.run, lines: [179, 253]}
+source: ghsa
+split: null
+notes: "The tools FastMCP's OpenAPI provider generates per operation (handler OpenAPITool.run) substituted path-parameter arguments unencoded into the path template in RequestDirector._build_url and resolved the result with urljoin, so values such as '../../admin?' escaped the API prefix and reached arbitrary endpoints of the backend with the provider's credentials (the URL goes into httpx.Request in RequestDirector.build and is sent by OpenAPITool.run). The fix percent-encodes path parameters, including dots. Fix: https://github.com/PrefectHQ/fastmcp/pull/3507 (squash commit 40bdfb6b1de0ce30609ee9ba5bb95ecd04a9fb71)"
