@@ -54,4 +54,5 @@ the next run). Only `ok` runs enter the denominators.
 ## Reproducibility
 Tool versions and the semgrep-rules commit are pinned; `manifest.json` records the local image
 IDs. A finished run is reused only while the case commit, `subdir`, image and command are
-unchanged; `--force` repeats it anyway.
+unchanged; `--force` repeats it anyway. `score` applies the same check: a run made on an older
+case version or another image than the manifest names counts as not run (with a warning).

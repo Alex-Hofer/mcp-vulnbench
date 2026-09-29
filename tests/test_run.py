@@ -13,6 +13,8 @@ from mcpvb.fetch import fetch_case
 from mcpvb.run import (
     InfrastructureError,
     Status,
+    fingerprint,
+    matches,
     raw_path,
     read_status,
     run_dir,
@@ -343,3 +345,13 @@ def test_unsupported_wins_over_missing_sources(bandit, case, tmp_path):
     ts_case = case.model_copy(update={"language": Language.TYPESCRIPT})
     status = run_one(bandit, ts_case, "vulnerable", None, tmp_path / "results", FakeRunner())
     assert status is Status.UNSUPPORTED
+
+
+def test_recorded_runs_match_only_the_current_case_and_image(bandit, case):
+    expected = fingerprint(bandit, case, "vulnerable", "sha256:new")
+    assert matches(expected, expected)
+    assert not matches(None, expected)
+    assert not matches({**expected, "commit": "0" * 40}, expected)  # the case was edited
+    assert not matches({**expected, "image_id": "sha256:old"}, expected)  # the image was rebuilt
+    unknown_image = {**expected, "image_id": ""}  # no manifest: the image cannot be compared
+    assert matches({**expected, "image_id": "sha256:old"}, unknown_image)

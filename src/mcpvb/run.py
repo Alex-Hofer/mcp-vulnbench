@@ -82,6 +82,24 @@ def fingerprint(variant: ToolVariant, case: Case, version: str, image_id: str) -
     }
 
 
+def matches(recorded: dict | None, expected: dict) -> bool:
+    """A recorded fingerprint matches if every entry agrees; an unknown image id is not compared."""
+    if not isinstance(recorded, dict):
+        return False
+    return all(
+        recorded.get(key) == value for key, value in expected.items() if key != "image_id" or value
+    )
+
+
+def manifest_image_ids(results: Path) -> dict[str, str]:
+    """Image id per variant as recorded by the last run; empty without a readable manifest."""
+    try:
+        entries = json.loads((results / "manifest.json").read_text(encoding="utf-8"))["variants"]
+        return {name: str(entry.get("image_id", "")) for name, entry in entries.items()}
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return {}
+
+
 def run_one(
     variant: ToolVariant,
     case: Case,

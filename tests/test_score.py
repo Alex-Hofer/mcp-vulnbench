@@ -7,9 +7,10 @@ from typer.testing import CliRunner
 from mcpvb.classes import VulnClass
 from mcpvb.cli import app
 from mcpvb.normalize import Finding
-from mcpvb.run import Status
-from mcpvb.schema import Case
+from mcpvb.run import Status, fingerprint
+from mcpvb.schema import Case, load_cases
 from mcpvb.score import is_detected, is_persisting, score_case, summarize
+from mcpvb.tools import load_variant
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -142,8 +143,8 @@ def test_unsupported_runs_are_no_errors():
     assert overall["recall"] is None
 
 
-def test_score_command_writes_metrics(toy_cases_dir, tmp_path):
-    results = tmp_path / "results"
+def write_bandit_runs(toy_cases_dir, results, recorded_commit: str | None = None) -> None:
+    """Finished bandit runs on both toy cases, as run_one records them (fingerprint included)."""
     rules = [{"id": "B602", "properties": {"tags": ["external/cwe/cwe-78"]}}]
     physical = {"artifactLocation": {"uri": "file:///src/server.py"}, "region": {"startLine": 15}}
     hit = {
@@ -156,19 +157,44 @@ def test_score_command_writes_metrics(toy_cases_dir, tmp_path):
         "vulnerable": {"version": "2.1.0", "runs": [{"tool": tool, "results": [hit]}]},
         "fixed": {"version": "2.1.0", "runs": [{"tool": tool, "results": []}]},
     }
-    for case_id in ("mcpvb-9001", "mcpvb-9002"):
+    variant = load_variant(REPO_ROOT / "tools" / "bandit" / "tool.yaml")
+    for current in load_cases(toy_cases_dir):
         for version, doc in docs.items():
-            folder = results / "bandit" / case_id / version
+            folder = results / "bandit" / current.id / version
             (folder / "tool").mkdir(parents=True)  # analyzer output lives in <run>/tool/ (I8)
             (folder / "tool" / "raw.sarif").write_text(json.dumps(doc), encoding="utf-8")
-            (folder / "meta.json").write_text(json.dumps({"status": "ok"}), encoding="utf-8")
+            recorded = fingerprint(variant, current, version, "sha256:abc")
+            if recorded_commit:
+                recorded["commit"] = recorded_commit
+            meta = {"status": "ok", "fingerprint": recorded}
+            (folder / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
+
+
+def score_cli(toy_cases_dir, tmp_path, results):
     args = ["score", "--cases-dir", str(toy_cases_dir), "--tools-dir", str(REPO_ROOT / "tools")]
     args += ["--cache-dir", str(tmp_path / "cache"), "--results-dir", str(results)]
-    outcome = CliRunner().invoke(app, [*args, "--variant", "bandit"])
+    return CliRunner().invoke(app, [*args, "--variant", "bandit"])
+
+
+def test_score_command_writes_metrics(toy_cases_dir, tmp_path):
+    results = tmp_path / "results"
+    write_bandit_runs(toy_cases_dir, results)
+    outcome = score_cli(toy_cases_dir, tmp_path, results)
     assert outcome.exit_code == 0, outcome.output
     metrics = json.loads((results / "metrics.json").read_text(encoding="utf-8"))
     overall = metrics["variants"]["bandit"]["overall"]
     assert (overall["cases_ok"], overall["detected"], overall["fix_recognition"]) == (2, 1, 1.0)
+
+
+def test_score_ignores_runs_of_an_edited_case(toy_cases_dir, tmp_path):
+    results = tmp_path / "results"
+    write_bandit_runs(toy_cases_dir, results, recorded_commit="0" * 40)
+    outcome = score_cli(toy_cases_dir, tmp_path, results)
+    assert outcome.exit_code == 0, outcome.output
+    assert "do not match the current case or image" in outcome.output
+    metrics = json.loads((results / "metrics.json").read_text(encoding="utf-8"))
+    assert metrics["variants"]["bandit"]["overall"]["cases_ok"] == 0
+    assert {o["status_vulnerable"] for o in metrics["cases"]} == {"unavailable"}
 
 
 def test_alarm_figures_ignore_findings_in_skipped_folders():

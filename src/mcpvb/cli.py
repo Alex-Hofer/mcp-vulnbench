@@ -12,7 +12,16 @@ from mcpvb.fetch import CaseSources, FetchError, check_locations, fetch_case
 from mcpvb.loc import count_kloc
 from mcpvb.normalize import Finding, load_run
 from mcpvb.report import write_report
-from mcpvb.run import VERSIONS, InfrastructureError, run_one, write_manifest
+from mcpvb.run import (
+    VERSIONS,
+    InfrastructureError,
+    fingerprint,
+    manifest_image_ids,
+    matches,
+    read_meta,
+    run_one,
+    write_manifest,
+)
 from mcpvb.schema import Case, CaseError, load_cases
 from mcpvb.score import CaseOutcome, score_case, summarize
 from mcpvb.tools import ToolError, ToolVariant, load_variants
@@ -234,6 +243,18 @@ def _score(
     outcomes: list[CaseOutcome] = []
     vulnerable_findings: dict[str, list[Finding]] = {}
     kloc: dict[str, float] = {}
+    image_ids = manifest_image_ids(results_dir)
+    stale: list[str] = []
+
+    def current_run(variant: ToolVariant, case: Case, version: str) -> tuple:
+        """Findings of a run made on the current case and image; any other run counts as not run."""
+        expected = fingerprint(variant, case, version, image_ids.get(variant.name, ""))
+        meta = read_meta(results_dir, variant.name, case.id, version)
+        if meta is not None and not matches(meta.get("fingerprint"), expected):
+            stale.append(f"{variant.name} {case.id} {version}")
+            return None, []
+        return load_run(results_dir, variant.name, case.id, version, variant.cwe_overrides)
+
     for current in cases:
         try:
             kloc[current.id] = count_kloc(
@@ -245,13 +266,17 @@ def _score(
                 err=True,
             )
         for variant in variants:
-            overrides = variant.cwe_overrides
-            status_v, found_v = load_run(
-                results_dir, variant.name, current.id, "vulnerable", overrides
-            )
-            status_f, found_f = load_run(results_dir, variant.name, current.id, "fixed", overrides)
+            status_v, found_v = current_run(variant, current, "vulnerable")
+            status_f, found_f = current_run(variant, current, "fixed")
             outcomes.append(score_case(variant.name, current, status_v, status_f, found_v, found_f))
             vulnerable_findings.setdefault(variant.name, []).extend(found_v)
+    if stale:
+        shown = ", ".join(stale[:5]) + (" ..." if len(stale) > 5 else "")
+        typer.echo(
+            f"warning: {len(stale)} run(s) do not match the current case or image and count as"
+            f" not run ({shown}) - repeat them with `mcpvb run`",
+            err=True,
+        )
     metrics = summarize(outcomes, vulnerable_findings, kloc)
     results_dir.mkdir(parents=True, exist_ok=True)
     (results_dir / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
