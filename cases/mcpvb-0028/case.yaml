@@ -1,0 +1,25 @@
+id: mcpvb-0028
+title: "Path traversal in create_notebook of python-notebook-mcp"
+advisories: [CVE-2026-7810, GHSA-m4mw-6cr3-7cc7]
+repo: https://github.com/UsamaK98/python-notebook-mcp
+license: MIT
+language: python
+subdir: null
+class: path-traversal
+cwe: CWE-22
+mcp_tool: create_notebook
+vulnerable:
+  commit: a05a232815809a7e425b5fa7be26e0d4369894c2
+  locations:
+    - {file: server.py, function: create_notebook, lines: [344, 366]}
+    - {file: server.py, function: resolve_path, lines: [76, 83]}
+    - {file: server.py, function: create_new_notebook, lines: [96, 115]}
+fixed:
+  commit: 72c323973d068deac24d5b72748f25c8b64f27f7
+  locations:
+    - {file: server.py, function: create_notebook, lines: [442, 462]}
+    - {file: server.py, function: resolve_path, lines: [112, 177]}
+    - {file: server.py, function: create_new_notebook, lines: [246, 263]}
+source: ghsa
+split: test
+notes: "resolve_path returned an absolute filepath argument unchanged and joined a relative one onto WORKSPACE_DIR without normalization or a containment check, so the notebook tools (create_notebook, read_notebook, edit_cell, add_cell, ...) read and wrote .ipynb files outside the initialized workspace, e.g. '../outside.ipynb' or '/tmp/outside.ipynb'; create_new_notebook creates the parent directories and opens the resolved path for writing (sink). server.py defines resolve_path twice; the location is the second definition (line 76), which shadows the first at import time. The fix merges both into one that canonicalizes the target with os.path.realpath and raises PermissionError unless it lies inside the initialized workspace (commonpath check). The vulnerable commit is the one the advisory names ('up to a05a232'); the merge commit 72c3239 has the same tree as the PR head f4c44d7. The PR also refactors unrelated code (atomic writes via _write_notebook_atomic, logging, a require_workspace decorator). Fix: https://github.com/UsamaK98/python-notebook-mcp/pull/7 (closes issue #5; merge commit 72c323973d068deac24d5b72748f25c8b64f27f7)"
