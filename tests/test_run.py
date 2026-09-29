@@ -321,3 +321,9 @@ def test_corrupt_meta_counts_as_not_finished(bandit, case, tmp_path):
     runner = FakeRunner()
     assert run_one(bandit, case, "vulnerable", tmp_path, results, runner) is Status.OK
     assert len(runner.calls) == 1
+
+
+def test_unsupported_wins_over_missing_sources(bandit, case, tmp_path):
+    ts_case = case.model_copy(update={"language": Language.TYPESCRIPT})
+    status = run_one(bandit, ts_case, "vulnerable", None, tmp_path / "results", FakeRunner())
+    assert status is Status.UNSUPPORTED

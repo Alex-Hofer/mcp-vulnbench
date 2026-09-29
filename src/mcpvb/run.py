@@ -101,7 +101,7 @@ def run_one(
     done = read_meta(results, variant.name, case.id, version)
     if done is not None and done.get("fingerprint") == expected and not force:
         return Status(done["status"])
-    if src is None:
+    if src is None and variant.supports(case.language):
         return Status.UNAVAILABLE  # not recorded: the next run retries once the sources are back
     out = run_dir(results, variant.name, case.id, version)
     if out.exists():
