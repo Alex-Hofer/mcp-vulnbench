@@ -1,0 +1,6 @@
+The case annotations in cases/ (case.yaml files) are licensed under the
+Creative Commons Attribution 4.0 International License (CC BY 4.0):
+https://creativecommons.org/licenses/by/4.0/
+
+They describe vulnerabilities in third-party projects but contain none of their
+code. The analyzed projects keep their own licenses.
