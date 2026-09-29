@@ -7,6 +7,7 @@ import typer
 
 from mcpvb import __version__, docker
 from mcpvb.fetch import FetchError, check_locations, fetch_case
+from mcpvb.report import write_report
 from mcpvb.run import VERSIONS, run_one, write_manifest
 from mcpvb.schema import Case, CaseError, load_cases
 from mcpvb.tools import ToolError, ToolVariant, load_variants
@@ -152,3 +153,12 @@ def run(
     variants = _load_variants_or_exit(tools_dir, variant)
     _preflight_or_exit()
     _run_all(cases, variants, cache_dir, results_dir, force)
+
+
+@app.command()
+def report(results_dir: Path = RESULTS_DIR) -> None:
+    """Render report.md and recall.svg from metrics.json."""
+    if not (results_dir / "metrics.json").is_file():
+        typer.echo(f"{results_dir / 'metrics.json'} not found - run `mcpvb score` first", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(f"wrote {write_report(results_dir)}")
