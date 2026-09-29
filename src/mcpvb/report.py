@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 
 import matplotlib
@@ -14,9 +15,13 @@ from matplotlib.figure import Figure  # noqa: E402
 from mcpvb.classes import VulnClass  # noqa: E402
 
 SURFACE, INK, MUTED, GRID, BAR = "#fcfcfb", "#52514e", "#898781", "#e1e0d9", "#2a78d6"
+STATUSES = ("ok", "error", "timeout", "unsupported", "unavailable")
+STATUS_CELLS = {"error": "err", "timeout": "t/o", "unsupported": "n/s", "unavailable": "n/a"}
 LEGEND = (
     "✓ detected, fix recognized · ◐ detected, fix not recognized · "
-    "● detected, fixed version not assessed · ✗ missed · – not assessed"
+    "● detected, fixed version not assessed · ✗ missed · "
+    "err / t/o / n/s / n/a: run of the vulnerable version failed, timed out, is unsupported or "
+    "had no sources"
 )
 
 
@@ -30,7 +35,7 @@ def _num(value: float | None) -> str:
 
 def _cell(outcome: dict) -> str:
     if outcome["detected"] is None:
-        return "–"
+        return STATUS_CELLS.get(outcome["status_vulnerable"], "–")
     if not outcome["detected"]:
         return "✗"
     if outcome["persisting"] is None:
@@ -74,6 +79,7 @@ def render_report(metrics: dict, manifest: dict | None = None) -> str:
         by_class = variants[name]["by_class"]
         cells = [_pct(by_class.get(k, {}).get("recall")) for k in classes]
         lines.append(f"| {name} | " + " | ".join(cells) + " |")
+    lines += _status_table(metrics, names) + _details_table(variants, names)
     lines += ["", "## Cases", "", LEGEND, "", "| Case | Class | " + " | ".join(names) + " |"]
     lines.append("|---|---|" + "---|" * len(names))
     by_key = {(o["variant"], o["case_id"]): o for o in metrics["cases"]}
@@ -91,6 +97,47 @@ def render_report(metrics: dict, manifest: dict | None = None) -> str:
     return "\n".join(lines)
 
 
+def _status_table(metrics: dict, names: list[str]) -> list[str]:
+    """How every run ended, per variant (both versions of every case)."""
+    lines = ["", "## Run status", "", "| Variant | " + " | ".join(STATUSES) + " |"]
+    lines.append("|---|" + "---:|" * len(STATUSES))
+    for name in names:
+        counts = Counter(
+            status
+            for outcome in metrics["cases"]
+            if outcome["variant"] == name
+            for status in (outcome["status_vulnerable"], outcome["status_fixed"])
+        )
+        lines.append(f"| {name} | " + " | ".join(str(counts[s]) for s in STATUSES) + " |")
+    return lines
+
+
+def _details_table(variants: dict, names: list[str]) -> list[str]:
+    """Lenient recalls, recall per language and alarm details (docs/methodology.md)."""
+    languages = sorted({language for n in names for language in variants[n]["by_language"]})
+    header = [
+        "Variant",
+        "Recall (file level)",
+        "Recall (any class)",
+        *(f"Recall ({language})" for language in languages),
+        "Median alarms/case",
+        "Unclassified findings",
+    ]
+    lines = ["", "## Details", "", "| " + " | ".join(header) + " |"]
+    lines.append("|---|" + "---:|" * (len(header) - 1))
+    for name in names:
+        variant = variants[name]
+        cells = [
+            _pct(variant["lenient"]["recall_file_level"]),
+            _pct(variant["lenient"]["recall_any_class"]),
+            *(_pct(variant["by_language"].get(lang, {}).get("recall")) for lang in languages),
+            _num(variant["overall"]["alarms_median_per_case"]),
+            str(variant["overall"]["unclassified_findings"]),
+        ]
+        lines.append(f"| {name} | " + " | ".join(cells) + " |")
+    return lines
+
+
 def render_chart(metrics: dict, path: Path) -> None:
     """Horizontal bars of overall recall per variant; the report table is the accessible view."""
     matplotlib.rcParams["svg.hashsalt"] = "mcpvb"
@@ -101,10 +148,11 @@ def render_chart(metrics: dict, path: Path) -> None:
 
 def chart_figure(metrics: dict) -> Figure:
     names = list(metrics["variants"])
-    recalls = [(metrics["variants"][n]["overall"]["recall"] or 0.0) * 100 for n in names]
+    recalls = [metrics["variants"][n]["overall"]["recall"] for n in names]
     fig, ax = plt.subplots(figsize=(6.4, 0.5 * len(names) + 1.4), facecolor=SURFACE)
     ax.set_facecolor(SURFACE)
-    ax.barh(names, recalls, height=0.5, color=BAR)
+    # No bar for a variant without assessed cases: "n/a" must not look like "found nothing".
+    ax.barh(names, [(recall or 0.0) * 100 for recall in recalls], height=0.5, color=BAR)
     ax.set_xlim(0, 100)
     ax.invert_yaxis()
     ax.set_title("Recall per variant (%)", loc="left", color=INK, fontsize=11)
@@ -115,8 +163,9 @@ def chart_figure(metrics: dict) -> Figure:
     ax.spines["bottom"].set_color(MUTED)
     ax.tick_params(colors=MUTED, length=0)
     ax.tick_params(axis="y", labelcolor=INK)
-    for y, value in enumerate(recalls):
-        ax.text(value + 1.5, y, f"{value:.0f} %", va="center", color=INK, fontsize=9)
+    for y, recall in enumerate(recalls):
+        x, label = (1.5, "n/a") if recall is None else (recall * 100 + 1.5, f"{recall * 100:.0f} %")
+        ax.text(x, y, label, va="center", color=INK, fontsize=9)
     fig.tight_layout()
     return fig
 

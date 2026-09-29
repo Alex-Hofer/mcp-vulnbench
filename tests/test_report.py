@@ -75,3 +75,29 @@ def test_value_labels_stay_inside_the_chart():
     fig.canvas.draw()
     for label in fig.axes[0].texts:
         assert label.get_window_extent().x1 <= fig.bbox.x1, label.get_text()
+
+
+def test_missing_recall_is_not_drawn_as_zero():
+    metrics = copy.deepcopy(METRICS)
+    metrics["variants"]["bandit"]["overall"]["recall"] = None
+    labels = [label.get_text() for label in chart_figure(metrics).axes[0].texts]
+    assert labels == ["n/a"]
+
+
+def test_report_counts_run_statuses():
+    metrics = copy.deepcopy(METRICS)
+    metrics["cases"][1].update(status_vulnerable="error", detected=None)
+    text = render_report(metrics)
+    assert "| Variant | ok | error | timeout | unsupported | unavailable |" in text
+    assert "| bandit | 3 | 1 | 0 | 0 | 0 |" in text
+
+
+def test_report_shows_lenient_recall_and_alarm_details():
+    text = render_report(METRICS)
+    assert "| bandit | 50 % | 50 % | 50 % | 1 | 0 |" in text
+
+
+def test_case_table_names_the_status_of_unassessed_runs():
+    metrics = copy.deepcopy(METRICS)
+    metrics["cases"][1].update(status_vulnerable="timeout", detected=None)
+    assert "| mcpvb-9002 | path-traversal | t/o |" in render_report(metrics)
