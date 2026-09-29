@@ -119,3 +119,19 @@ def test_selecting_unknown_ids_is_an_error(tmp_path):
 def test_missing_case_directory_is_an_error(tmp_path):
     with pytest.raises(CaseError, match="is not a directory"):
         load_cases(tmp_path / "nope")
+
+
+@pytest.mark.parametrize("subdir", ["../..", "/etc", r"C:\Windows", "src/../../x"])
+def test_subdir_must_stay_inside_the_repository(tmp_path, subdir):
+    with pytest.raises(CaseError, match="relative path inside the repository"):
+        load_case(write_case(tmp_path, variant(subdir=subdir)))
+
+
+def test_subdir_uses_forward_slashes(tmp_path):
+    assert load_case(write_case(tmp_path, variant(subdir=r"src\git"))).subdir == "src/git"
+
+
+def test_drive_paths_are_rejected(tmp_path):
+    data = variant(vulnerable={"commit": "a" * 40, "locations": [location(file=r"C:\secret\x.py")]})
+    with pytest.raises(CaseError, match="relative path inside the repository"):
+        load_case(write_case(tmp_path, data))

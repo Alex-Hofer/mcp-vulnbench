@@ -71,3 +71,9 @@ def test_fetch_command(toy_cases_dir, tmp_path):
     result = CliRunner().invoke(app, args)
     assert result.exit_code == 0, result.output
     assert "2 case(s) fetched" in result.output
+
+
+def test_missing_subdir_is_a_fetch_error(toy_cases_dir, tmp_path):
+    case = load_cases(toy_cases_dir, ["mcpvb-9001"])[0].model_copy(update={"subdir": "servers/git"})
+    with pytest.raises(FetchError, match="subdir 'servers/git' not found"):
+        fetch_case(case, tmp_path / "cache")

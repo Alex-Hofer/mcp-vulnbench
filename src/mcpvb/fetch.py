@@ -83,7 +83,11 @@ def fetch_case(case: Case, cache: Path) -> CaseSources:
         marker = dest / DONE_MARKER
         if not (marker.is_file() and marker.read_text(encoding="utf-8") == version.commit):
             _export(mirror, version.commit, dest)
-        roots[name] = dest / case.subdir if case.subdir else dest
+        root = dest / case.subdir if case.subdir else dest
+        # The root is mounted into the analyzer container: it must be a folder of this export.
+        if not root.resolve().is_relative_to(dest.resolve()) or not root.is_dir():
+            raise FetchError(f"subdir {case.subdir!r} not found at {version.commit[:12]}")
+        roots[name] = root
     return CaseSources(vulnerable=roots["vulnerable"], fixed=roots["fixed"])
 
 

@@ -16,6 +16,15 @@ from mcpvb.licenses import OSI_APPROVED
 MAX_CASES_PER_REPO = 3
 _SHA = re.compile(r"[0-9a-f]{40}")
 _ADVISORY = re.compile(r"CVE-\d{4}-\d{4,}|GHSA(-[23456789cfghjmpqrvwx]{4}){3}")
+_DRIVE = re.compile(r"[A-Za-z]:")
+
+
+def repo_relative(value: str, field: str) -> str:
+    """Normalize a repository-relative path; reject absolute, drive and parent-directory paths."""
+    path = value.replace("\\", "/").removeprefix("./").rstrip("/")
+    if not path or path.startswith("/") or _DRIVE.match(path) or ".." in path.split("/"):
+        raise ValueError(f"{field} must be a relative path inside the repository")
+    return path
 
 
 class CaseError(Exception):
@@ -52,10 +61,7 @@ class Location(BaseModel):
     @field_validator("file")
     @classmethod
     def _relative_posix(cls, value: str) -> str:
-        path = value.replace("\\", "/").removeprefix("./")
-        if not path or path.startswith("/") or ".." in path.split("/"):
-            raise ValueError("file must be a relative path inside the repository")
-        return path
+        return repo_relative(value, "file")
 
     @field_validator("lines")
     @classmethod
@@ -98,6 +104,11 @@ class Case(BaseModel):
     source: Source
     split: Split | None = None
     notes: str = ""
+
+    @field_validator("subdir")
+    @classmethod
+    def _relative_subdir(cls, value: str | None) -> str | None:
+        return None if value is None else repo_relative(value, "subdir")
 
     @field_validator("advisories")
     @classmethod
