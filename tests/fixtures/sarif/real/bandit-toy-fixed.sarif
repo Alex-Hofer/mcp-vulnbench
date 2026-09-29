@@ -1,0 +1,194 @@
+{
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Bandit",
+          "organization": "PyCQA",
+          "rules": [
+            {
+              "id": "B404",
+              "properties": {
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-78"
+                ]
+              }
+            },
+            {
+              "id": "B607",
+              "properties": {
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-78"
+                ]
+              }
+            },
+            {
+              "id": "B603",
+              "properties": {
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-78"
+                ]
+              }
+            }
+          ],
+          "version": "1.9.4",
+          "semanticVersion": "1.9.4"
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "endTimeUtc": "2026-09-29T14:20:46Z"
+        }
+      ],
+      "properties": {
+        "metrics": {
+          "_totals": {
+            "loc": 24,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "SEVERITY.LOW": 3,
+            "CONFIDENCE.LOW": 0,
+            "SEVERITY.MEDIUM": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.HIGH": 3
+          },
+          "/src/server.py": {
+            "loc": 24,
+            "nosec": 0,
+            "skipped_tests": 0,
+            "SEVERITY.UNDEFINED": 0,
+            "SEVERITY.LOW": 3,
+            "SEVERITY.MEDIUM": 0,
+            "SEVERITY.HIGH": 0,
+            "CONFIDENCE.UNDEFINED": 0,
+            "CONFIDENCE.LOW": 0,
+            "CONFIDENCE.MEDIUM": 0,
+            "CONFIDENCE.HIGH": 3
+          }
+        }
+      },
+      "results": [
+        {
+          "message": {
+            "text": "B404"
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "import subprocess\n"
+                  },
+                  "endColumn": 18,
+                  "endLine": 4,
+                  "startColumn": 1,
+                  "startLine": 4
+                },
+                "artifactLocation": {
+                  "uri": "file:///src/server.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "import re\nimport subprocess\nfrom pathlib import Path\n"
+                  },
+                  "endLine": 5,
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B404",
+          "ruleIndex": 0
+        },
+        {
+          "message": {
+            "text": "B607"
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "    completed = subprocess.run([\"ping\", \"-c\", \"1\", host], capture_output=True, text=True)\n"
+                  },
+                  "endColumn": 90,
+                  "endLine": 19,
+                  "startColumn": 17,
+                  "startLine": 19
+                },
+                "artifactLocation": {
+                  "uri": "file:///src/server.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        raise ValueError(\"invalid host name\")\n    completed = subprocess.run([\"ping\", \"-c\", \"1\", host], capture_output=True, text=True)\n    return completed.stdout\n"
+                  },
+                  "endLine": 20,
+                  "startLine": 18
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B607",
+          "ruleIndex": 1
+        },
+        {
+          "message": {
+            "text": "B603"
+          },
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "region": {
+                  "snippet": {
+                    "text": "    completed = subprocess.run([\"ping\", \"-c\", \"1\", host], capture_output=True, text=True)\n"
+                  },
+                  "endColumn": 90,
+                  "endLine": 19,
+                  "startColumn": 17,
+                  "startLine": 19
+                },
+                "artifactLocation": {
+                  "uri": "file:///src/server.py"
+                },
+                "contextRegion": {
+                  "snippet": {
+                    "text": "        raise ValueError(\"invalid host name\")\n    completed = subprocess.run([\"ping\", \"-c\", \"1\", host], capture_output=True, text=True)\n    return completed.stdout\n"
+                  },
+                  "endLine": 20,
+                  "startLine": 18
+                }
+              }
+            }
+          ],
+          "properties": {
+            "issue_confidence": "HIGH",
+            "issue_severity": "LOW"
+          },
+          "ruleId": "B603",
+          "ruleIndex": 2
+        }
+      ]
+    }
+  ],
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json"
+}

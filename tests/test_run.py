@@ -1,0 +1,176 @@
+import json
+import os
+from pathlib import Path
+
+import pytest
+from typer.testing import CliRunner
+
+from mcpvb import docker
+from mcpvb.cli import app
+from mcpvb.docker import ContainerResult
+from mcpvb.fetch import fetch_case
+from mcpvb.run import Status, read_status, run_dir, run_one
+from mcpvb.schema import Language, load_cases
+from mcpvb.tools import load_variant
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+class FakeRunner:
+    def __init__(self, exit_code: int | None = 0, write_sarif: bool = True):
+        self.exit_code = exit_code
+        self.write_sarif = write_sarif
+        self.calls: list[list[str]] = []
+
+    def __call__(self, image, command, src, out, timeout_s):
+        self.calls.append(command)
+        if self.write_sarif:
+            (out / "raw.sarif").write_text('{"version": "2.1.0", "runs": []}', encoding="utf-8")
+        return ContainerResult(self.exit_code, "fake log", 0.25)
+
+
+@pytest.fixture
+def bandit():
+    return load_variant(REPO_ROOT / "tools" / "bandit" / "tool.yaml")
+
+
+@pytest.fixture
+def case(toy_cases_dir):
+    return load_cases(toy_cases_dir, ["mcpvb-9001"])[0]
+
+
+def test_successful_run_is_recorded(bandit, case, tmp_path):
+    runner = FakeRunner()
+    status = run_one(bandit, case, "vulnerable", tmp_path, tmp_path / "results", runner)
+    assert status is Status.OK
+    meta_path = run_dir(tmp_path / "results", "bandit", case.id, "vulnerable") / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    assert meta["status"] == "ok" and meta["tool_version"] == "1.9.4"
+    assert runner.calls[0][:3] == ["bandit", "--recursive", "/src"]
+
+
+@pytest.mark.parametrize(
+    "exit_code, write_sarif, expected",
+    [(2, True, Status.ERROR), (0, False, Status.ERROR), (None, False, Status.TIMEOUT)],
+)
+def test_failures_get_their_own_status(bandit, case, tmp_path, exit_code, write_sarif, expected):
+    runner = FakeRunner(exit_code, write_sarif)
+    assert run_one(bandit, case, "vulnerable", tmp_path, tmp_path / "results", runner) is expected
+
+
+def test_unsupported_language_skips_the_container(bandit, case, tmp_path):
+    ts_case = case.model_copy(update={"language": Language.TYPESCRIPT})
+    runner = FakeRunner()
+    status = run_one(bandit, ts_case, "vulnerable", tmp_path, tmp_path / "results", runner)
+    assert status is Status.UNSUPPORTED
+    assert runner.calls == []
+
+
+def test_missing_sources_are_unavailable(bandit, case, tmp_path):
+    status = run_one(bandit, case, "fixed", None, tmp_path / "results", FakeRunner())
+    assert status is Status.UNAVAILABLE
+
+
+def test_completed_runs_are_not_repeated(bandit, case, tmp_path):
+    results = tmp_path / "results"
+    run_one(bandit, case, "vulnerable", tmp_path, results, FakeRunner())
+    second = FakeRunner()
+    run_one(bandit, case, "vulnerable", tmp_path, results, second)
+    assert second.calls == []
+    run_one(bandit, case, "vulnerable", tmp_path, results, second, force=True)
+    assert len(second.calls) == 1
+
+
+def test_aborted_run_without_meta_is_repeated(bandit, case, tmp_path):
+    results = tmp_path / "results"
+    partial = run_dir(results, "bandit", case.id, "vulnerable")
+    partial.mkdir(parents=True)
+    (partial / "raw.sarif").write_text("{", encoding="utf-8")  # left over from an aborted run
+    runner = FakeRunner()
+    assert run_one(bandit, case, "vulnerable", tmp_path, results, runner) is Status.OK
+    assert len(runner.calls) == 1
+    assert read_status(results, "bandit", case.id, "vulnerable") is Status.OK
+
+
+def test_run_stops_early_without_docker(monkeypatch, toy_cases_dir, tmp_path):
+    def unavailable():
+        raise docker.DockerUnavailable("docker daemon not reachable - start Docker Desktop")
+
+    monkeypatch.setattr(docker, "preflight", unavailable)
+    args = ["run", "--cases-dir", str(toy_cases_dir), "--tools-dir", str(REPO_ROOT / "tools")]
+    result = CliRunner().invoke(app, [*args, "--results-dir", str(tmp_path / "results")])
+    assert result.exit_code == 2
+    assert "start Docker Desktop" in result.output
+
+
+@pytest.mark.docker
+@pytest.mark.parametrize("name", ["bandit", "semgrep-default", "semgrep-mcp", "codeql"])
+def test_real_tool_run_on_toy_case(name, toy_cases_dir, tmp_path):
+    variant = load_variant(REPO_ROOT / "tools" / name / "tool.yaml")
+    if not docker.image_id(variant.image):
+        pytest.skip(f"image {variant.image} not built: uv run mcpvb images --variant {name}")
+    case = load_cases(toy_cases_dir, ["mcpvb-9001"])[0]
+    sources = fetch_case(case, tmp_path / "cache")
+    results = tmp_path / "results"
+    for version in ("vulnerable", "fixed"):
+        src = sources.for_version(version)
+        status = run_one(variant, case, version, src, results, docker.run_container)
+        log = (run_dir(results, name, case.id, version) / "log.txt").read_text(encoding="utf-8")
+        assert status is Status.OK, log
+    if os.environ.get("MCPVB_RECORD_FIXTURES") == "1":
+        target = REPO_ROOT / "tests" / "fixtures" / "sarif" / "real"
+        target.mkdir(parents=True, exist_ok=True)
+        for version in ("vulnerable", "fixed"):
+            raw = run_dir(results, name, case.id, version) / "raw.sarif"
+            fixture = target / f"{name}-toy-{version}.sarif"
+            fixture.write_text(minimized_sarif(raw), encoding="utf-8")
+
+
+def minimized_sarif(raw: Path) -> str:
+    """Results plus the rules they use (id and tags only).
+
+    Enough for the parser tests, small, and free of rule texts: Semgrep registry rules must not
+    be redistributed (Semgrep Rules License v1.0).
+    """
+    doc = json.loads(raw.read_text(encoding="utf-8"))
+    for sarif_run in doc.get("runs", []):
+        for result in sarif_run.get("results", []):
+            result["message"] = {"text": result.get("ruleId", "")}  # tools copy rule texts here
+        used = {result.get("ruleId") for result in sarif_run.get("results", [])}
+        tool = sarif_run.get("tool", {})
+        for component in [tool.get("driver", {}), *tool.get("extensions", [])]:
+            component["rules"] = [
+                {
+                    "id": rule["id"],
+                    "properties": {"tags": rule.get("properties", {}).get("tags", [])},
+                }
+                for rule in component.get("rules", [])
+                if rule.get("id") in used
+            ]
+    return json.dumps(doc, indent=2) + "\n"
+
+
+def test_minimized_sarif_drops_rule_texts(tmp_path):
+    rules = [
+        {"id": "r1", "shortDescription": {"text": "rule text"}, "properties": {"tags": ["CWE-78"]}},
+        {"id": "unused", "properties": {"tags": []}},
+    ]
+    result = {"ruleId": "r1", "message": {"text": "Message text from the rule"}, "locations": []}
+    doc = {
+        "version": "2.1.0",
+        "runs": [{"tool": {"driver": {"rules": rules}}, "results": [result]}],
+    }
+    raw = tmp_path / "raw.sarif"
+    raw.write_text(json.dumps(doc), encoding="utf-8")
+    minimized = json.loads(minimized_sarif(raw))["runs"][0]
+    assert minimized["tool"]["driver"]["rules"] == [
+        {"id": "r1", "properties": {"tags": ["CWE-78"]}}
+    ]
+    assert minimized["results"][0]["message"] == {"text": "r1"}
+
+
+def test_recorded_fixtures_carry_no_tool_message_texts():
+    for path in sorted((REPO_ROOT / "tests" / "fixtures" / "sarif" / "real").glob("*.sarif")):
+        for sarif_run in json.loads(path.read_text(encoding="utf-8"))["runs"]:
+            for result in sarif_run.get("results", []):
+                assert result["message"] == {"text": result["ruleId"]}, path.name

@@ -1,0 +1,147 @@
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "requires login"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/src/server.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 96,
+                  "endLine": 15,
+                  "snippet": {
+                    "text": "    completed = subprocess.run(f\"ping -c 1 {host}\", shell=True, capture_output=True, text=True)"
+                  },
+                  "startColumn": 17,
+                  "startLine": 15
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "rules.default.python.lang.security.audit.dangerous-subprocess-use-audit"
+          },
+          "properties": {},
+          "ruleId": "rules.default.python.lang.security.audit.dangerous-subprocess-use-audit"
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "requires login"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/src/server.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 51,
+                  "endLine": 15,
+                  "snippet": {
+                    "text": "    completed = subprocess.run(f\"ping -c 1 {host}\", shell=True, capture_output=True, text=True)"
+                  },
+                  "startColumn": 32,
+                  "startLine": 15
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "rules.mcp.ai.ai-best-practices.mcp-command-injection.mcp-command-injection-python"
+          },
+          "properties": {},
+          "ruleId": "rules.mcp.ai.ai-best-practices.mcp-command-injection.mcp-command-injection-python"
+        },
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "requires login"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/src/server.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 63,
+                  "endLine": 15,
+                  "snippet": {
+                    "text": "    completed = subprocess.run(f\"ping -c 1 {host}\", shell=True, capture_output=True, text=True)"
+                  },
+                  "startColumn": 59,
+                  "startLine": 15
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "rules.default.python.lang.security.audit.subprocess-shell-true"
+          },
+          "properties": {},
+          "ruleId": "rules.default.python.lang.security.audit.subprocess-shell-true"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "Semgrep OSS",
+          "rules": [
+            {
+              "id": "rules.default.python.lang.security.audit.dangerous-subprocess-use-audit",
+              "properties": {
+                "tags": [
+                  "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')",
+                  "LOW CONFIDENCE",
+                  "OWASP-A01:2017 - Injection",
+                  "OWASP-A03:2021 - Injection",
+                  "OWASP-A05:2025 - Injection",
+                  "security"
+                ]
+              }
+            },
+            {
+              "id": "rules.default.python.lang.security.audit.subprocess-shell-true",
+              "properties": {
+                "tags": [
+                  "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')",
+                  "MEDIUM CONFIDENCE",
+                  "OWASP-A01:2017 - Injection",
+                  "OWASP-A03:2021 - Injection",
+                  "OWASP-A05:2025 - Injection",
+                  "security"
+                ]
+              }
+            },
+            {
+              "id": "rules.mcp.ai.ai-best-practices.mcp-command-injection.mcp-command-injection-python",
+              "properties": {
+                "tags": [
+                  "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')",
+                  "HIGH CONFIDENCE",
+                  "security"
+                ]
+              }
+            }
+          ],
+          "semanticVersion": "1.178.0"
+        }
+      }
+    }
+  ],
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
+}

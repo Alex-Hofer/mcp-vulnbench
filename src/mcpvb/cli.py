@@ -7,6 +7,7 @@ import typer
 
 from mcpvb import __version__, docker
 from mcpvb.fetch import FetchError, check_locations, fetch_case
+from mcpvb.run import VERSIONS, run_one, write_manifest
 from mcpvb.schema import Case, CaseError, load_cases
 from mcpvb.tools import ToolError, ToolVariant, load_variants
 
@@ -109,3 +110,45 @@ def images(tools_dir: Path = TOOLS_DIR, variant: list[str] | None = VARIANT_OPTI
         except subprocess.CalledProcessError as exc:
             typer.echo(f"building {image} failed (exit code {exc.returncode})", err=True)
             raise typer.Exit(code=1) from exc
+
+
+RESULTS_DIR = typer.Option(
+    Path("results/latest"), "--results-dir", help="Run outputs, metrics and the report."
+)
+FORCE_OPTION = typer.Option(False, "--force", help="Repeat runs that already finished.")
+
+
+def _run_all(
+    cases: list[Case], variants: list[ToolVariant], cache_dir: Path, results_dir: Path, force: bool
+) -> None:
+    write_manifest(results_dir, variants, {v.image: docker.image_id(v.image) for v in variants})
+    for current in cases:
+        try:
+            sources = fetch_case(current, cache_dir)
+        except FetchError as exc:
+            typer.echo(f"{current.id}: {exc}", err=True)
+            sources = None
+        for variant in variants:
+            for version in VERSIONS:
+                src = sources.for_version(version) if sources else None
+                status = run_one(
+                    variant, current, version, src, results_dir, docker.run_container, force
+                )
+                typer.echo(f"{variant.name:<16} {current.id} {version:<10} {status}")
+
+
+@app.command()
+def run(
+    cases_dir: Path = CASES_DIR,
+    tools_dir: Path = TOOLS_DIR,
+    cache_dir: Path = CACHE_DIR,
+    results_dir: Path = RESULTS_DIR,
+    variant: list[str] | None = VARIANT_OPTION,
+    case: list[str] | None = CASE_OPTION,
+    force: bool = FORCE_OPTION,
+) -> None:
+    """Run the tool variants on both versions of every case."""
+    cases = _load_cases_or_exit(cases_dir, case)
+    variants = _load_variants_or_exit(tools_dir, variant)
+    _preflight_or_exit()
+    _run_all(cases, variants, cache_dir, results_dir, force)
