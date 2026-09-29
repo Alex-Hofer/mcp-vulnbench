@@ -9,7 +9,15 @@ from mcpvb import docker
 from mcpvb.cli import app
 from mcpvb.docker import ContainerResult
 from mcpvb.fetch import fetch_case
-from mcpvb.run import InfrastructureError, Status, raw_path, read_status, run_dir, run_one
+from mcpvb.run import (
+    InfrastructureError,
+    Status,
+    raw_path,
+    read_status,
+    run_dir,
+    run_one,
+    write_manifest,
+)
 from mcpvb.schema import Language, load_cases
 from mcpvb.tools import load_variant
 
@@ -262,3 +270,43 @@ def test_unavailable_sources_are_not_recorded(bandit, case, tmp_path):
     results = tmp_path / "results"
     assert run_one(bandit, case, "fixed", None, results, FakeRunner()) is Status.UNAVAILABLE
     assert read_status(results, "bandit", case.id, "fixed") is None
+
+
+def run_twice(first: dict, second: dict, bandit, case, tmp_path) -> FakeRunner:
+    """Run with the first setup, then with the second; return the runner of the second run."""
+    results = tmp_path / "results"
+    run_one(first.get("variant", bandit), first.get("case", case), "vulnerable", tmp_path,
+            results, FakeRunner(), image_id=first.get("image_id", "sha256:a"))  # fmt: skip
+    runner = FakeRunner()
+    run_one(second.get("variant", bandit), second.get("case", case), "vulnerable", tmp_path,
+            results, runner, image_id=second.get("image_id", "sha256:a"))  # fmt: skip
+    return runner
+
+
+def test_unchanged_setup_reuses_the_run(bandit, case, tmp_path):
+    assert run_twice({}, {}, bandit, case, tmp_path).calls == []
+
+
+def test_changed_case_commit_repeats_the_run(bandit, case, tmp_path):
+    moved = case.model_copy(
+        update={"vulnerable": case.vulnerable.model_copy(update={"commit": "c" * 40})}
+    )
+    assert len(run_twice({}, {"case": moved}, bandit, case, tmp_path).calls) == 1
+
+
+def test_rebuilt_image_repeats_the_run(bandit, case, tmp_path):
+    assert len(run_twice({}, {"image_id": "sha256:b"}, bandit, case, tmp_path).calls) == 1
+
+
+def test_changed_command_repeats_the_run(bandit, case, tmp_path):
+    changed = bandit.model_copy(update={"command": [*bandit.command, "--verbose"]})
+    assert len(run_twice({}, {"variant": changed}, bandit, case, tmp_path).calls) == 1
+
+
+def test_manifest_keeps_the_other_variants(bandit, tmp_path):
+    semgrep = load_variant(REPO_ROOT / "tools" / "semgrep-default" / "tool.yaml")
+    write_manifest(tmp_path, [bandit], {bandit.image: "sha256:a"})
+    write_manifest(tmp_path, [semgrep], {semgrep.image: "sha256:b"})
+    manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    assert set(manifest["variants"]) == {"bandit", "semgrep-default"}
+    assert manifest["variants"]["bandit"]["image_id"] == "sha256:a"

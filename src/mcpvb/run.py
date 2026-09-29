@@ -43,12 +43,31 @@ def raw_path(results: Path, variant: str, case_id: str, version: str) -> Path:
     return run_dir(results, variant, case_id, version) / TOOL_DIR / RAW
 
 
-def read_status(results: Path, variant: str, case_id: str, version: str) -> Status | None:
-    """Status of a finished run; None if the run never completed (no meta.json)."""
+def read_meta(results: Path, variant: str, case_id: str, version: str) -> dict | None:
+    """meta.json of a finished run; None if the run never completed."""
     meta = run_dir(results, variant, case_id, version) / META
     if not meta.is_file():
         return None
-    return Status(json.loads(meta.read_text(encoding="utf-8"))["status"])
+    return json.loads(meta.read_text(encoding="utf-8"))
+
+
+def read_status(results: Path, variant: str, case_id: str, version: str) -> Status | None:
+    """Status of a finished run; None if the run never completed (no meta.json)."""
+    meta = read_meta(results, variant, case_id, version)
+    return None if meta is None else Status(meta["status"])
+
+
+def fingerprint(variant: ToolVariant, case: Case, version: str, image_id: str) -> dict:
+    """Everything that decides a run's result; a finished run is reused only if it matches."""
+    commit = (case.vulnerable if version == "vulnerable" else case.fixed).commit
+    supported = variant.supports(case.language)
+    return {
+        "commit": commit,
+        "subdir": case.subdir,
+        "image_id": image_id,
+        "command": variant.render_command(case.language) if supported else None,
+        "languages": [language.value for language in variant.languages],
+    }
 
 
 def run_one(
@@ -59,11 +78,17 @@ def run_one(
     results: Path,
     runner: ContainerRunner,
     force: bool = False,
+    image_id: str = "",
 ) -> Status:
-    """Run one variant on one case version; meta.json is written last and marks completion."""
-    done = read_status(results, variant.name, case.id, version)
-    if done is not None and not force:
-        return done
+    """Run one variant on one case version; meta.json is written last and marks completion.
+
+    A finished run is reused only if its fingerprint (commit, subdir, image, command, languages)
+    still matches, so an edited case or a rebuilt image never yields stale results.
+    """
+    expected = fingerprint(variant, case, version, image_id)
+    done = read_meta(results, variant.name, case.id, version)
+    if done is not None and done.get("fingerprint") == expected and not force:
+        return Status(done["status"])
     if src is None:
         return Status.UNAVAILABLE  # not recorded: the next run retries once the sources are back
     out = run_dir(results, variant.name, case.id, version)
@@ -107,23 +132,24 @@ def run_one(
         "exit_code": exit_code,
         "duration_s": round(duration, 3),
         "started": started,
+        "fingerprint": expected,
     }
     (out / META).write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return status
 
 
 def write_manifest(results: Path, variants: list[ToolVariant], image_ids: dict[str, str]) -> None:
+    """Record the variants of this run; entries of variants run earlier are kept."""
     results.mkdir(parents=True, exist_ok=True)
-    manifest = {
-        "created": datetime.now(UTC).isoformat(timespec="seconds"),
-        "variants": {
-            v.name: {
-                "tool": v.tool,
-                "version": v.version,
-                "image": v.image,
-                "image_id": image_ids.get(v.image, ""),
-            }
-            for v in variants
-        },
-    }
-    (results / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    path = results / "manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    manifest["updated"] = datetime.now(UTC).isoformat(timespec="seconds")
+    entries = manifest.setdefault("variants", {})
+    for v in variants:
+        entries[v.name] = {
+            "tool": v.tool,
+            "version": v.version,
+            "image": v.image,
+            "image_id": image_ids.get(v.image, ""),
+        }
+    path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")

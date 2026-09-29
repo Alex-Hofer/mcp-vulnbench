@@ -140,7 +140,14 @@ def _run_all(
                 src = sources.for_version(version) if sources else None
                 try:
                     status = run_one(
-                        variant, current, version, src, results_dir, docker.run_container, force
+                        variant,
+                        current,
+                        version,
+                        src,
+                        results_dir,
+                        docker.run_container,
+                        force,
+                        image_ids[variant.image],
                     )
                 except InfrastructureError as exc:
                     typer.echo(f"{exc}\nstopped: fix Docker, then run again", err=True)
