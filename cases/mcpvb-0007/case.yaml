@@ -1,0 +1,21 @@
+id: mcpvb-0007
+title: "Path traversal in git_add of mcp-server-git"
+advisories: [CVE-2026-27735, GHSA-vjqx-cfc4-9h6v]
+repo: https://github.com/modelcontextprotocol/servers
+license: MIT
+language: python
+subdir: src/git
+class: path-traversal
+cwe: CWE-22
+mcp_tool: git_add
+vulnerable:
+  commit: dcb47d2d94a3a33340053d2df550ae68d2795a3f
+  locations:
+    - {file: src/mcp_server_git/server.py, function: git_add, lines: [131, 136]}
+fixed:
+  commit: 862e717ff714987bd5577318df09858e14883863
+  locations:
+    - {file: src/mcp_server_git/server.py, function: git_add, lines: [131, 137]}
+source: ghsa
+split: null
+notes: "The git_add tool staged its files argument with GitPython's repo.index.add, which does not enforce working-tree boundaries, so relative ../ paths outside the repository were staged; the fix delegates to git add -- <files>, which rejects out-of-tree paths. Fix: https://github.com/modelcontextprotocol/servers/pull/3164 (merge commit 862e717ff714987bd5577318df09858e14883863)"
