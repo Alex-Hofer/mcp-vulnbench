@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import pytest
+import yaml
 from typer.testing import CliRunner
 
 from mcpvb import docker
@@ -248,6 +249,21 @@ def test_run_stops_when_an_image_is_missing(monkeypatch, toy_cases_dir, tmp_path
     assert result.exit_code == 2
     assert "mcpvb images" in result.output
     assert runner.calls == []
+
+
+def test_run_checks_the_ground_truth_before_any_container_starts(
+    monkeypatch, toy_cases_dir, tmp_path
+):
+    case_file = toy_cases_dir / "mcpvb-9002" / "case.yaml"
+    data = yaml.safe_load(case_file.read_text(encoding="utf-8"))
+    data["vulnerable"]["locations"][0]["lines"] = [20, 23]  # typo: read_note spans [19, 23]
+    case_file.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    runner = FakeRunner()
+    fake_docker(monkeypatch, "sha256:abc", runner)
+    result = run_cli(toy_cases_dir, tmp_path)
+    assert result.exit_code == 1
+    assert "mcpvb-9002" in result.output and "read_note" in result.output
+    assert runner.calls == []  # a wrong range would otherwise silently become a miss
 
 
 def test_run_stops_on_docker_infrastructure_errors(monkeypatch, toy_cases_dir, tmp_path):

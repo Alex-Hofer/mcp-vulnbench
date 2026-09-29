@@ -8,7 +8,7 @@ import typer
 
 from mcpvb import __version__, docker
 from mcpvb.curate import python_functions
-from mcpvb.fetch import FetchError, check_locations, fetch_case
+from mcpvb.fetch import CaseSources, FetchError, check_locations, fetch_case
 from mcpvb.loc import count_kloc
 from mcpvb.normalize import Finding, load_run
 from mcpvb.report import write_report
@@ -136,6 +136,30 @@ RESULTS_DIR = typer.Option(
 FORCE_OPTION = typer.Option(False, "--force", help="Repeat runs that already finished.")
 
 
+def _fetch_checked(cases: list[Case], cache_dir: Path) -> dict[str, CaseSources | None]:
+    """Sources of every case; stops before any container starts if a location is wrong.
+
+    Unavailable sources are no reason to stop (their runs are retried later), but a wrong file
+    or line range in case.yaml would silently turn into a missed detection.
+    """
+    sources: dict[str, CaseSources | None] = {}
+    problems: list[str] = []
+    for current in cases:
+        try:
+            sources[current.id] = fetch_case(current, cache_dir)
+        except FetchError as exc:
+            typer.echo(f"{current.id}: {exc}", err=True)
+            sources[current.id] = None
+            continue
+        problems += check_locations(current, sources[current.id])
+    if problems:
+        for problem in problems:
+            typer.echo(problem, err=True)
+        typer.echo("stopped: fix the ground-truth locations in case.yaml first", err=True)
+        raise typer.Exit(code=1)
+    return sources
+
+
 def _run_all(
     cases: list[Case], variants: list[ToolVariant], cache_dir: Path, results_dir: Path, force: bool
 ) -> None:
@@ -144,13 +168,10 @@ def _run_all(
     if missing:
         typer.echo(f"image(s) not built: {', '.join(missing)} - run `mcpvb images` first", err=True)
         raise typer.Exit(code=2)
+    all_sources = _fetch_checked(cases, cache_dir)
     write_manifest(results_dir, variants, image_ids)
     for current in cases:
-        try:
-            sources = fetch_case(current, cache_dir)
-        except FetchError as exc:
-            typer.echo(f"{current.id}: {exc}", err=True)
-            sources = None
+        sources = all_sources[current.id]
         for variant in variants:
             for version in VERSIONS:
                 src = sources.for_version(version) if sources else None
