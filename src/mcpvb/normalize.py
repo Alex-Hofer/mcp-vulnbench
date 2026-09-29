@@ -41,21 +41,51 @@ def relative_path(uri: str) -> str:
     return path.removeprefix("./").lstrip("/")
 
 
-def _collect_rules(sarif_run: dict) -> dict[str, dict]:
+def _require(condition: bool, path: Path, problem: str) -> None:
+    if not condition:
+        raise NormalizeError(f"{path}: {problem}")
+
+
+def _is_line(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
+
+
+def _check_run(sarif_run: object, path: Path) -> list:
+    """The results of a run; a malformed run or one reporting a failed execution is an error."""
+    _require(isinstance(sarif_run, dict), path, "a run is not an object")
+    results = sarif_run.get("results")
+    _require(isinstance(results, list), path, "a run has no 'results' list (scan incomplete)")
+    invocations = sarif_run.get("invocations", [])
+    well_formed = isinstance(invocations, list) and all(isinstance(i, dict) for i in invocations)
+    _require(well_formed, path, "'invocations' is malformed")
+    failed = any(invocation.get("executionSuccessful") is False for invocation in invocations)
+    _require(not failed, path, "the tool reported a failed execution")
+    return results
+
+
+def _collect_rules(sarif_run: dict, path: Path) -> dict[str, dict]:
     """Rules of the driver and of all extensions (CodeQL keeps its query rules in extensions)."""
     tool = sarif_run.get("tool", {})
-    components = [tool.get("driver", {}), *tool.get("extensions", [])]
-    return {
-        rule["id"]: rule
-        for component in components
-        for rule in component.get("rules", [])
-        if "id" in rule
-    }
+    _require(isinstance(tool, dict), path, "'tool' is not an object")
+    extensions = tool.get("extensions", [])
+    _require(isinstance(extensions, list), path, "'tool.extensions' is not a list")
+    rules: dict[str, dict] = {}
+    for component in [tool.get("driver", {}), *extensions]:
+        _require(isinstance(component, dict), path, "a tool component is not an object")
+        component_rules = component.get("rules", [])
+        _require(isinstance(component_rules, list), path, "'rules' is not a list")
+        for rule in component_rules:
+            if isinstance(rule, dict) and isinstance(rule.get("id"), str):
+                rules[rule["id"]] = rule
+    return rules
 
 
-def _cwe_texts(properties: dict) -> list[str]:
-    texts = [str(tag) for tag in properties.get("tags", [])]
-    return texts + [str(value) for key, value in properties.items() if "cwe" in key.lower()]
+def _cwe_texts(properties: object) -> list[str]:
+    if not isinstance(properties, dict):
+        return []
+    tags = properties.get("tags", [])
+    texts = [str(tag) for tag in tags] if isinstance(tags, list) else []
+    return texts + [str(value) for key, value in properties.items() if "cwe" in str(key).lower()]
 
 
 def _pick_cwe(rule_id: str, rule: dict, result: dict, overrides: dict[str, str]) -> str | None:
@@ -69,14 +99,22 @@ def _pick_cwe(rule_id: str, rule: dict, result: dict, overrides: dict[str, str])
     return min(pool, key=cwe_number) if pool else None
 
 
-def _location(result: dict) -> tuple[str, int, int] | None:
-    for location in result.get("locations", []):
+def _location(result: dict, path: Path) -> tuple[str, int, int] | None:
+    locations = result.get("locations", [])
+    _require(isinstance(locations, list), path, "'locations' is not a list")
+    for location in locations:
+        _require(isinstance(location, dict), path, "a location is not an object")
         physical = location.get("physicalLocation", {})
-        uri = physical.get("artifactLocation", {}).get("uri")
-        region = physical.get("region", {})
-        start = region.get("startLine")
-        if uri and start:
-            return relative_path(uri), int(start), int(region.get("endLine", start))
+        _require(isinstance(physical, dict), path, "'physicalLocation' is not an object")
+        artifact, region = physical.get("artifactLocation", {}), physical.get("region", {})
+        valid = isinstance(artifact, dict) and isinstance(region, dict)
+        _require(valid, path, "'artifactLocation' or 'region' is not an object")
+        uri, start = artifact.get("uri"), region.get("startLine")
+        if uri and start is not None:
+            end = region.get("endLine", start)
+            valid = isinstance(uri, str) and _is_line(start) and _is_line(end)
+            _require(valid, path, "a location has an invalid uri or line numbers")
+            return relative_path(uri), start, end
     return None
 
 
@@ -93,12 +131,18 @@ def parse_sarif(
         raise NormalizeError(f"{path}: not a SARIF log (no 'runs' list)")
     findings: list[Finding] = []
     for sarif_run in doc["runs"]:
-        rules = _collect_rules(sarif_run)
-        for result in sarif_run.get("results", []):
-            location = _location(result)
+        results = _check_run(sarif_run, path)
+        rules = _collect_rules(sarif_run, path)
+        for result in results:
+            _require(isinstance(result, dict), path, "a result is not an object")
+            message = result.get("message", {})
+            _require(isinstance(message, dict), path, "a result message is not an object")
+            location = _location(result, path)
             if location is None:
                 continue
-            rule_id = result.get("ruleId") or result.get("rule", {}).get("id") or "unknown"
+            rule = result.get("rule", {})
+            rule_ref = rule.get("id") if isinstance(rule, dict) else None
+            rule_id = str(result.get("ruleId") or rule_ref or "unknown")
             cwe = _pick_cwe(rule_id, rules.get(rule_id, {}), result, overrides or {})
             file, line, end_line = location
             findings.append(
@@ -112,7 +156,7 @@ def parse_sarif(
                     rule_id=rule_id,
                     cwe=cwe,
                     vuln_class=class_for_cwe(cwe),
-                    message=result.get("message", {}).get("text", ""),
+                    message=str(message.get("text", "")),
                 )
             )
     return findings

@@ -54,8 +54,11 @@ ground truth (case.yaml) ─► score ─► metrics.json ─► report ─► r
 
 Every run ends in exactly one status: `ok`, `error`, `timeout`, `unsupported` or `unavailable`. Only
 `ok` runs enter the denominators; the others are reported separately and never count as "not
-found". A run whose tool exits 0 but writes no valid SARIF is an `error`. A run directory without
-`meta.json` counts as not run and is repeated.
+found". A run whose tool exits 0 but writes no valid SARIF is an `error`, and so is a SARIF run
+without a `results` list or with `executionSuccessful: false`. A run directory without `meta.json`
+counts as not run and is repeated; a finished run is reused only while the case commit, `subdir`,
+image and command are unchanged. Docker failures (exit codes 125-127, missing images) stop the run
+without recording anything, and unavailable sources are retried on the next run.
 
 ## Harness security
 

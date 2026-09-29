@@ -154,3 +154,48 @@ def test_symlinked_sarif_counts_as_error(tmp_path):
         pytest.skip("creating symlinks is not permitted on this machine")
     status, findings = load_run(tmp_path, "bandit", "mcpvb-0001", "vulnerable")
     assert status is Status.ERROR and findings == []
+
+
+def one_result(**changes) -> dict:
+    physical = {"artifactLocation": {"uri": "server.py"}, "region": {"startLine": 3}}
+    result = {
+        "ruleId": "r",
+        "message": {"text": "m"},
+        "locations": [{"physicalLocation": physical}],
+    }
+    result.update(changes)
+    return {"version": "2.1.0", "runs": [{"results": [result]}]}
+
+
+BAD_REGION = [
+    {"physicalLocation": {"artifactLocation": {"uri": "a.py"}, "region": {"startLine": "x"}}}
+]
+MALFORMED_OR_FAILED = {
+    "run-null": {"version": "2.1.0", "runs": [None]},
+    "results-null": {"version": "2.1.0", "runs": [{"results": None}]},
+    "results-missing": {"version": "2.1.0", "runs": [{}]},
+    "result-null": {"version": "2.1.0", "runs": [{"results": [None]}]},
+    "message-string": one_result(message="plain string"),
+    "line-not-int": one_result(locations=BAD_REGION),
+    "execution-failed": {
+        "version": "2.1.0",
+        "runs": [{"results": [], "invocations": [{"executionSuccessful": False}]}],
+    },
+}
+
+
+@pytest.mark.parametrize("name", sorted(MALFORMED_OR_FAILED))
+def test_malformed_or_failed_sarif_raises(tmp_path, name):
+    with pytest.raises(NormalizeError):
+        parse(write(tmp_path, MALFORMED_OR_FAILED[name]))
+
+
+def test_malformed_sarif_marks_only_that_run_as_error(tmp_path):
+    ok_run(tmp_path, json.dumps(MALFORMED_OR_FAILED["results-null"]))
+    status, findings = load_run(tmp_path, "bandit", "mcpvb-0001", "vulnerable")
+    assert status is Status.ERROR and findings == []
+
+
+def test_well_formed_single_result_still_parses(tmp_path):
+    [finding] = parse(write(tmp_path, one_result()))
+    assert (finding.file, finding.line) == ("server.py", 3)
