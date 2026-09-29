@@ -21,7 +21,7 @@ def _hits(
     file_level: bool,
     any_class: bool,
 ) -> bool:
-    if finding.file != location.file:
+    if finding.file != location.file or finding.vuln_class is None:
         return False
     if not any_class and finding.vuln_class != vuln_class:
         return False

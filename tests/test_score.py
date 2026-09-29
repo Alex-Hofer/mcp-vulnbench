@@ -76,10 +76,12 @@ def test_detection_requires_the_same_class():
     assert is_detected(CASE, wrong_class, any_class=True) is True
 
 
-def test_unclassified_findings_only_count_without_the_class_check():
+def test_unclassified_findings_never_count_as_detection():
+    # "any class" means any of the five classes: an assert or a missing timeout in the vulnerable
+    # function is not a lenient detection of the bug
     unclassified = [finding(15, None)]
     assert is_detected(CASE, unclassified) is False
-    assert is_detected(CASE, unclassified, any_class=True) is True
+    assert is_detected(CASE, unclassified, any_class=True) is False
 
 
 def test_file_level_ignores_lines_but_not_the_file():

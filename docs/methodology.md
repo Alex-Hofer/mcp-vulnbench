@@ -15,7 +15,8 @@ A finding *f* of a variant hits a location *L* of case *c* if `f.file == L.file`
 (`src/mcpvb/classes.py`); a variant may correct the CWE of single rules (`cwe_overrides` in
 `tools/<variant>/tool.yaml`). A case is **detected** if any finding hits any of its vulnerable
 locations. Two lenient variants are reported too: file level (lines ignored) and class-agnostic
-(class ignored).
+(a finding of any of the five classes counts, not only of the case's class). Findings without one
+of the five classes, such as an `assert` or a missing request timeout, never count as a detection.
 
 ## Metrics (per variant: overall, per class, per language)
 - **Recall** = detected cases / cases whose vulnerable run is `ok`.

@@ -35,7 +35,7 @@ Cases: 26
 
 | Variant | Recall (file level) | Recall (any class) | Recall (python) | Median alarms/case | Unclassified findings |
 |---|---:|---:|---:|---:|---:|
-| bandit | 24 % | 36 % | 16 % | 2 | 597 |
+| bandit | 24 % | 20 % | 16 % | 2 | 597 |
 | codeql | 4 % | 4 % | 4 % | 0 | 87 |
 | semgrep-default | 15 % | 19 % | 15 % | 1.5 | 136 |
 | semgrep-mcp | 19 % | 23 % | 19 % | 1.5 | 137 |
