@@ -1,0 +1,164 @@
+"""Match findings against the ground truth and compute the metrics of docs/methodology.md."""
+
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+from pathlib import PurePosixPath
+from statistics import median
+
+from mcpvb.classes import VulnClass
+from mcpvb.loc import SKIP_DIRS
+from mcpvb.normalize import Finding
+from mcpvb.run import Status
+from mcpvb.schema import Case, Location
+
+
+def _hits(
+    location: Location,
+    finding: Finding,
+    vuln_class: VulnClass,
+    *,
+    file_level: bool,
+    any_class: bool,
+) -> bool:
+    if finding.file != location.file:
+        return False
+    if not any_class and finding.vuln_class != vuln_class:
+        return False
+    return file_level or location.lines[0] <= finding.line <= location.lines[1]
+
+
+def is_detected(
+    case: Case, findings: list[Finding], *, file_level: bool = False, any_class: bool = False
+) -> bool:
+    """A finding on the vulnerable version inside a ground-truth location."""
+    return any(
+        _hits(location, finding, case.vuln_class, file_level=file_level, any_class=any_class)
+        for location in case.vulnerable.locations
+        for finding in findings
+    )
+
+
+def is_persisting(case: Case, fixed_findings: list[Finding]) -> bool:
+    """A finding of the case's class still inside a fixed location: the fix is not recognized."""
+    return any(
+        _hits(location, finding, case.vuln_class, file_level=False, any_class=False)
+        for location in case.fixed.locations
+        for finding in fixed_findings
+    )
+
+
+@dataclass(frozen=True)
+class CaseOutcome:
+    variant: str
+    case_id: str
+    language: str
+    vuln_class: str
+    status_vulnerable: str
+    status_fixed: str
+    detected: bool | None
+    detected_file_level: bool | None
+    detected_any_class: bool | None
+    persisting: bool | None
+
+
+def score_case(
+    variant: str,
+    case: Case,
+    status_vulnerable: Status | None,
+    status_fixed: Status | None,
+    vulnerable_findings: list[Finding],
+    fixed_findings: list[Finding],
+) -> CaseOutcome:
+    ok_vulnerable = status_vulnerable is Status.OK
+    detected = is_detected(case, vulnerable_findings) if ok_vulnerable else None
+    persisting = (
+        is_persisting(case, fixed_findings) if detected and status_fixed is Status.OK else None
+    )
+    return CaseOutcome(
+        variant=variant,
+        case_id=case.id,
+        language=case.language.value,
+        vuln_class=case.vuln_class.value,
+        status_vulnerable=(status_vulnerable or Status.UNAVAILABLE).value,
+        status_fixed=(status_fixed or Status.UNAVAILABLE).value,
+        detected=detected,
+        detected_file_level=is_detected(case, vulnerable_findings, file_level=True)
+        if ok_vulnerable
+        else None,
+        detected_any_class=is_detected(case, vulnerable_findings, any_class=True)
+        if ok_vulnerable
+        else None,
+        persisting=persisting,
+    )
+
+
+def _in_skipped_folder(file: str) -> bool:
+    """Alarm figures cover the same code as the KLOC count (see loc.SKIP_DIRS)."""
+    return bool(SKIP_DIRS.intersection(PurePosixPath(file).parts[:-1]))
+
+
+def _rate(numerator: int, denominator: int) -> float | None:
+    return round(numerator / denominator, 4) if denominator else None
+
+
+def _recall(outcomes: list[CaseOutcome], attribute: str = "detected") -> dict:
+    scored = [o for o in outcomes if getattr(o, attribute) is not None]
+    hits = sum(1 for o in scored if getattr(o, attribute))
+    return {"cases_ok": len(scored), "detected": hits, "recall": _rate(hits, len(scored))}
+
+
+def summarize(
+    outcomes: list[CaseOutcome],
+    vulnerable_findings: dict[str, list[Finding]],
+    kloc: dict[str, float],
+) -> dict:
+    """Metrics per variant; see docs/methodology.md for every definition."""
+    variants: dict[str, dict] = {}
+    for name in sorted({o.variant for o in outcomes}):
+        mine = [o for o in outcomes if o.variant == name]
+        assessed = [o for o in mine if o.detected and o.persisting is not None]
+        recognized = sum(1 for o in assessed if not o.persisting)
+        runs = [
+            status
+            for o in mine
+            for status in (o.status_vulnerable, o.status_fixed)
+            if status != Status.UNSUPPORTED
+        ]
+        ok_cases = sorted({o.case_id for o in mine if o.status_vulnerable == Status.OK})
+        findings = [
+            f
+            for f in vulnerable_findings.get(name, [])
+            if f.case_id in ok_cases and not _in_skipped_folder(f.file)
+        ]
+        classified = [f for f in findings if f.vuln_class is not None]
+        per_case = [sum(1 for f in classified if f.case_id == cid) for cid in ok_cases]
+        total_kloc = sum(kloc.get(cid, 0.0) for cid in ok_cases)
+        variants[name] = {
+            "overall": {
+                **_recall(mine),
+                "fix_recognized": recognized,
+                "fix_recognition": _rate(recognized, len(assessed)),
+                "alarms_per_kloc": round(len(classified) / total_kloc, 2) if total_kloc else None,
+                "alarms_median_per_case": median(per_case) if per_case else None,
+                "unclassified_findings": len(findings) - len(classified),
+                "error_rate": _rate(sum(1 for s in runs if s != Status.OK), len(runs)),
+                "unsupported_cases": sum(
+                    1 for o in mine if o.status_vulnerable == Status.UNSUPPORTED
+                ),
+            },
+            "by_class": {
+                k.value: _recall([o for o in mine if o.vuln_class == k.value])
+                for k in VulnClass
+                if any(o.vuln_class == k.value for o in mine)
+            },
+            "by_language": {
+                language: _recall([o for o in mine if o.language == language])
+                for language in sorted({o.language for o in mine})
+            },
+            "lenient": {
+                "recall_file_level": _recall(mine, "detected_file_level")["recall"],
+                "recall_any_class": _recall(mine, "detected_any_class")["recall"],
+            },
+        }
+    return {"variants": variants, "cases": [asdict(o) for o in outcomes]}

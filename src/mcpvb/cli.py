@@ -1,5 +1,6 @@
 """Command-line interface of mcp-vulnbench."""
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -8,9 +9,12 @@ import typer
 from mcpvb import __version__, docker
 from mcpvb.curate import python_functions
 from mcpvb.fetch import FetchError, check_locations, fetch_case
+from mcpvb.loc import count_kloc
+from mcpvb.normalize import Finding, load_run
 from mcpvb.report import write_report
 from mcpvb.run import VERSIONS, InfrastructureError, run_one, write_manifest
 from mcpvb.schema import Case, CaseError, load_cases
+from mcpvb.score import CaseOutcome, score_case, summarize
 from mcpvb.tools import ToolError, ToolVariant, load_variants
 
 app = typer.Typer(
@@ -189,3 +193,46 @@ def functions(path: Path = PYTHON_FILE) -> None:
     """Print 'name<TAB>start-end' for every function (to fill `lines` in case.yaml)."""
     for name, start, end in python_functions(path):
         typer.echo(f"{name}\t{start}-{end}")
+
+
+def _score(
+    cases: list[Case], variants: list[ToolVariant], cache_dir: Path, results_dir: Path
+) -> dict:
+    outcomes: list[CaseOutcome] = []
+    vulnerable_findings: dict[str, list[Finding]] = {}
+    kloc: dict[str, float] = {}
+    for current in cases:
+        try:
+            kloc[current.id] = count_kloc(
+                fetch_case(current, cache_dir).vulnerable, current.language
+            )
+        except FetchError:
+            kloc[current.id] = 0.0
+        for variant in variants:
+            overrides = variant.cwe_overrides
+            status_v, found_v = load_run(
+                results_dir, variant.name, current.id, "vulnerable", overrides
+            )
+            status_f, found_f = load_run(results_dir, variant.name, current.id, "fixed", overrides)
+            outcomes.append(score_case(variant.name, current, status_v, status_f, found_v, found_f))
+            vulnerable_findings.setdefault(variant.name, []).extend(found_v)
+    metrics = summarize(outcomes, vulnerable_findings, kloc)
+    results_dir.mkdir(parents=True, exist_ok=True)
+    (results_dir / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    return metrics
+
+
+@app.command()
+def score(
+    cases_dir: Path = CASES_DIR,
+    tools_dir: Path = TOOLS_DIR,
+    cache_dir: Path = CACHE_DIR,
+    results_dir: Path = RESULTS_DIR,
+    variant: list[str] | None = VARIANT_OPTION,
+    case: list[str] | None = CASE_OPTION,
+) -> None:
+    """Normalize the SARIF outputs and write metrics.json."""
+    cases = _load_cases_or_exit(cases_dir, case)
+    variants = _load_variants_or_exit(tools_dir, variant)
+    _score(cases, variants, cache_dir, results_dir)
+    typer.echo(f"wrote {results_dir / 'metrics.json'}")
