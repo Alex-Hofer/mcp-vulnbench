@@ -1,3 +1,4 @@
+import shutil
 import tarfile
 from pathlib import Path
 
@@ -7,9 +8,10 @@ from typer.testing import CliRunner
 from mcpvb import fetch as fetch_module
 from mcpvb.cli import app
 from mcpvb.fetch import FetchError, check_locations, fetch_case
-from mcpvb.schema import load_cases
+from mcpvb.schema import Case, load_cases
 
 TOY_SERVER = Path(__file__).resolve().parents[1] / "examples" / "toy-server"
+from conftest import git, toy_case_data  # noqa: E402
 
 
 def test_toy_ground_truth_points_at_the_functions():
@@ -113,3 +115,24 @@ def test_location_lines_must_match_the_function(toy_cases_dir, tmp_path):
     sources = fetch_case(case, tmp_path / "cache")
     problems = check_locations(with_location(case, "fixed", lines=(15, 20)), sources)
     assert any("ping spans [14, 20]" in problem for problem in problems)
+
+
+def test_export_contains_the_exact_committed_files(tmp_path):
+    repo = tmp_path / "attributes-remote"
+    repo.mkdir()
+    git(repo, "init", "--quiet", "--initial-branch=main")
+    git(repo, "config", "user.name", "Test")
+    git(repo, "config", "user.email", "test@example.invalid")
+    git(repo, "config", "core.autocrlf", "false")
+    (repo / ".gitattributes").write_text("hidden.py export-ignore\n*.py text\n", encoding="utf-8")
+    (repo / "hidden.py").write_bytes(b"x = 1\n")
+    shas = []
+    for version in ("vulnerable", "fixed"):
+        shutil.copyfile(TOY_SERVER / version / "server.py", repo / "server.py")
+        git(repo, "add", "-A")
+        git(repo, "commit", "--quiet", "--message", version)
+        shas.append(git(repo, "rev-parse", "HEAD"))
+    case = Case.model_validate(toy_case_data(repo.as_uri(), *shas)[0])
+    sources = fetch_case(case, tmp_path / "cache")
+    assert (sources.vulnerable / "hidden.py").is_file()  # export-ignore must not drop code
+    assert b"\r\n" not in (sources.vulnerable / "server.py").read_bytes()  # no autocrlf

@@ -14,6 +14,10 @@ from mcpvb.curate import python_functions
 from mcpvb.schema import Case, Location
 
 DONE_MARKER = ".mcpvb-fetched"
+# Export exactly what is committed: no line-ending conversion and no export-ignore/export-subst
+# from the analyzed repository (they would differ between machines or silently drop code).
+EXPORT_ATTRIBUTES = "* -text -eol -export-ignore -export-subst"
+EXPORT_FORMAT = "2"  # bump when the export rules change, so cached exports are refreshed
 TOOL_CONFIG_FILES = frozenset({".bandit", ".semgrepignore"})
 
 
@@ -50,6 +54,8 @@ def _ensure_mirror(url: str, cache: Path) -> Path:
             shutil.rmtree(mirror)
         mirror.parent.mkdir(parents=True, exist_ok=True)
         _git("clone", "--bare", "--quiet", url, str(mirror))
+    (mirror / "info").mkdir(exist_ok=True)
+    (mirror / "info" / "attributes").write_text(EXPORT_ATTRIBUTES, encoding="utf-8")
     return mirror
 
 
@@ -70,7 +76,7 @@ def _export(mirror: Path, commit: str, dest: Path) -> None:
         _git("cat-file", "-e", f"{commit}^{{commit}}", cwd=mirror)
     except FetchError:
         _git("fetch", "--quiet", "origin", commit, cwd=mirror)
-    archive = _git("archive", "--format=tar", commit, cwd=mirror)
+    archive = _git("-c", "core.autocrlf=false", "archive", "--format=tar", commit, cwd=mirror)
     if dest.exists():
         shutil.rmtree(dest)
     dest.mkdir(parents=True)
@@ -79,7 +85,7 @@ def _export(mirror: Path, commit: str, dest: Path) -> None:
             tar.extractall(dest, filter=_regular_files_only)
     except (OSError, tarfile.TarError) as exc:
         raise FetchError(f"cannot extract {commit[:12]}: {exc}") from exc
-    (dest / DONE_MARKER).write_text(commit, encoding="utf-8")
+    (dest / DONE_MARKER).write_text(f"{commit} {EXPORT_FORMAT}", encoding="utf-8")
 
 
 def fetch_case(case: Case, cache: Path) -> CaseSources:
@@ -89,7 +95,10 @@ def fetch_case(case: Case, cache: Path) -> CaseSources:
     for name, version in (("vulnerable", case.vulnerable), ("fixed", case.fixed)):
         dest = cache / "cases" / case.id / name
         marker = dest / DONE_MARKER
-        if not (marker.is_file() and marker.read_text(encoding="utf-8") == version.commit):
+        if not (
+            marker.is_file()
+            and marker.read_text(encoding="utf-8") == f"{version.commit} {EXPORT_FORMAT}"
+        ):
             _export(mirror, version.commit, dest)
         root = dest / case.subdir if case.subdir else dest
         # The root is mounted into the analyzer container: it must be a folder of this export.
