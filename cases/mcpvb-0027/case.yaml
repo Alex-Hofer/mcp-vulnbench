@@ -1,0 +1,21 @@
+id: mcpvb-0027
+title: "Command injection in launch_vmd_gui_tool of gmx-vmd-mcp"
+advisories: [CVE-2026-7215, GHSA-7qfw-j73x-42p7]
+repo: https://github.com/egtai/gmx-vmd-mcp
+license: MIT
+language: python
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: launch_vmd_gui_tool
+vulnerable:
+  commit: 1150a83a5a31c071822ff601d0827eb86925b72b
+  locations:
+    - {file: mcp_server.py, function: launch_vmd_gui_tool, lines: [1139, 1230]}
+fixed:
+  commit: 44b6a4b133336759fe0ce088c141ef9c1c4c09fe
+  locations:
+    - {file: mcp_server.py, function: launch_vmd_gui_tool, lines: [1139, 1167]}
+source: ghsa
+split: test
+notes: "The tool is registered as '启动VMD图形界面' (launch VMD GUI); mcp_tool uses its function name. The MCP tool 启动VMD图形界面 ('launch VMD GUI', function launch_vmd_gui_tool) only checked that the caller-supplied structure_file and trajectory_file exist and, when both were given, ran os.system(f\"vmd {struct_abs_path} {traj_abs_path} &\") on every platform, so shell metacharacters in an existing file name executed arbitrary commands; the fix hands both paths to VMDManager.launch_gui, which starts VMD with an argument vector (subprocess.Popen, or create_subprocess_exec of 'open -a VMD' on macOS) without a shell. The fix is framed as a Windows launch fix and names neither the advisory nor issues #2/#3, but it removes exactly the shell sink the advisory names. The advisory lists CWE-74, but the sink is an OS shell command, hence CWE-78. Not part of the case: the 执行VMD TCL脚本 tool runs caller-supplied Tcl by design, and load_gromacs_trajectory_tool (加载GROMACS轨迹) still writes caller-controlled paths into a shell script it runs in a terminal (unchanged by the fix, not covered by the advisory). Fix: https://github.com/egtai/gmx-vmd-mcp/pull/4 (commit 44b6a4b133336759fe0ce088c141ef9c1c4c09fe, merged as 7c6d44d7f0f6e3afc57651ce1959be8eaf3fc5e7)"
