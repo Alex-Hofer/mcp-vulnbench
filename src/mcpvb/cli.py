@@ -6,6 +6,7 @@ from pathlib import Path
 import typer
 
 from mcpvb import __version__, docker
+from mcpvb.curate import python_functions
 from mcpvb.fetch import FetchError, check_locations, fetch_case
 from mcpvb.report import write_report
 from mcpvb.run import VERSIONS, run_one, write_manifest
@@ -162,3 +163,13 @@ def report(results_dir: Path = RESULTS_DIR) -> None:
         typer.echo(f"{results_dir / 'metrics.json'} not found - run `mcpvb score` first", err=True)
         raise typer.Exit(code=1)
     typer.echo(f"wrote {write_report(results_dir)}")
+
+
+PYTHON_FILE = typer.Argument(..., exists=True, dir_okay=False, help="A Python source file.")
+
+
+@app.command()
+def functions(path: Path = PYTHON_FILE) -> None:
+    """Print 'name<TAB>start-end' for every function (to fill `lines` in case.yaml)."""
+    for name, start, end in python_functions(path):
+        typer.echo(f"{name}\t{start}-{end}")
