@@ -1,6 +1,6 @@
 # 0003 – Own lean harness instead of a SmartBugs fork
 
-Status: accepted, 2026-10
+Status: accepted, 2026-09
 
 ## Context
 SmartBugs runs analyzers on Solidity contracts in Docker and normalizes their output. Its design

@@ -1,6 +1,6 @@
 # 0001 – SARIF as the only tool output format
 
-Status: accepted, 2026-10
+Status: accepted, 2026-09
 
 ## Context
 Semgrep, CodeQL and Bandit can all write SARIF 2.1.0. Tool-specific formats would need one parser

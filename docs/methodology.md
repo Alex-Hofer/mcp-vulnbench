@@ -25,12 +25,11 @@ of the five classes, such as an `assert` or a missing request timeout, never cou
 - **Alarms per KLOC** = classified findings (class among the five in scope) on the vulnerable
   versions of `ok` cases / KLOC of those versions. KLOC counts non-blank lines of the case language
   without `test`, `tests`, `node_modules`, `vendor`, `third_party`, `dist`, `build`, virtualenvs
-  and `__pycache__`; findings
-  in files of other languages (for example workflow YAML or a web frontend) or inside those folders
-  are not counted either, so numerator and denominator cover the same code. A case whose sources
-  are unavailable when scoring has no line count and is left out of the alarm figures (with a
-  warning).
-  Unclassified findings (same scope) are counted separately.
+  and `__pycache__`; findings in files of other languages (for example workflow YAML or a web
+  frontend) or inside those folders are not counted either, so numerator and denominator cover the
+  same code. A case whose sources are unavailable when scoring has no line count and is left out
+  of the alarm figures (with a warning). The median alarms per case is the median of the same
+  count over the same cases. Unclassified findings (same scope) are counted separately.
 - **Error rate** = runs with a status other than `ok` / all runs, without `unsupported` runs (a
   tool that does not support a language is not failing).
 
@@ -42,10 +41,17 @@ therefore approximated from two directions: does a tool still report the fixed c
 recognition), and how much does it report per KLOC (alarm volume). See ADR 0002.
 
 ## Tool configuration
-Every tool runs in its default configuration: no severity or confidence filter, so a tool is
-measured the way a team that adopts it without tuning would see it. In-source suppressions and the
-analyzed project's tool configuration files are ignored for every tool (see
-[design.md](design.md#tool-configuration-policy)).
+Every tool runs without a severity or confidence filter, so a tool is measured the way a team
+that adopts it without tuning would see it. The settings that differ from a tool's out-of-the-box
+behavior are deliberate:
+
+- CodeQL runs the `security-extended` suite, which adds lower-precision security queries to the
+  default suite.
+- Semgrep runs the Python security rules of the semgrep-rules repository at a pinned commit
+  (`python/*/security`; `semgrep-mcp` adds `ai/ai-best-practices/mcp-*`) instead of a registry
+  ruleset that changes over time, and with `--timeout 0`, so no rule is cut off on a large file.
+- In-source suppressions and the analyzed project's tool configuration files are ignored for
+  every tool (see [design.md](design.md#tool-configuration-policy)).
 
 ## Statuses
 `ok`, `error` (non-zero exit, missing, broken or failed SARIF), `timeout`, `unsupported` (language

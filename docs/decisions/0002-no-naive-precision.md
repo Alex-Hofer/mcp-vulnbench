@@ -1,6 +1,6 @@
 # 0002 – No naive precision
 
-Status: accepted, 2026-10
+Status: accepted, 2026-09
 
 ## Context
 The ground truth marks where the known vulnerability is. Other findings in the same repository may

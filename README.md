@@ -14,7 +14,8 @@ is measured on finding the bug *and* on recognizing the fix.
 
 26 publicly disclosed vulnerabilities in 21 open-source Python MCP server projects (12 path
 traversal, 5 SSRF, 4 command injection, 3 SQL injection, 2 code injection), four analyzer variants
-in their default configuration:
+without any tuning (the [methodology](docs/methodology.md#tool-configuration) lists the few
+deliberate settings):
 
 | Variant | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC | Error rate |
 |---|---:|---:|---:|---:|---:|---:|
@@ -27,9 +28,10 @@ in their default configuration:
 
 - No variant finds any of the 12 path-traversal or the 2 code-injection cases; only the MCP rules
   find one of the 5 SSRF cases.
-- What the tools do find is the textbook pattern: a tool argument that ends up in a `subprocess`
-  call or in an SQL string built with an f-string. Bandit and Semgrep then keep reporting the fixed
-  code too: their rules fire on the call itself, whatever the fix changed around it.
+- What the tools do find is the textbook pattern: MCP input that ends up in a `subprocess` call
+  or in an SQL string built with an f-string. Bandit and Semgrep then keep reporting the fixed code
+  too: a specific warning such as `shell=True` disappears with the fix, but their generic rules
+  fire on the call itself, whatever the fix changed around it.
 - CodeQL's taint queries start from known sources such as the request objects of web frameworks.
   One query also treats the parameters of a package's public functions as input, which is how
   CodeQL finds mcpvb-0014 and recognizes its fix. Nothing tells CodeQL that an MCP tool argument is
@@ -41,11 +43,13 @@ in their default configuration:
   file paths.
 
 Limitations: 26 cases is a small sample; one case moves a variant's recall by about four
-percentage points, and code injection is represented by two cases from one repository. Only
-Python servers and only static analyzers are measured; MCP scanners that inspect the tool
-descriptions of running servers look for a different class of problems and are not part of the
-benchmark. There is no precision column; the [methodology](docs/methodology.md#why-there-is-no-precision)
-explains why and which figures approximate false alarms instead. In two cases the fixed version
+percentage points, code injection is represented by two cases from one repository, and two of the
+three SQL-injection cases (mcpvb-0011, mcpvb-0012) share a commit pair and their sink function,
+so one finding there counts for both. Only Python servers and only static analyzers are measured;
+MCP scanners that inspect the tool descriptions of running servers look for a different class of
+problems and are not part of the benchmark. There is no precision column; the
+[methodology](docs/methodology.md#why-there-is-no-precision) explains why and which figures
+approximate false alarms instead. In two cases the fixed version
 still contains a related weakness (mcpvb-0006: a second path traversal that was fixed later;
 mcpvb-0022: private hosts stay reachable by design), so a persisting finding there is not
 necessarily a missed fix. Bandit's two runs on fastmcp end in an error because its SARIF formatter
@@ -61,7 +65,7 @@ Requires [uv](https://docs.astral.sh/uv/) and a running Docker daemon.
 uv sync
 uv run mcpvb images          # builds the analyzer images locally (never pushed)
 uv run mcpvb bench           # fetch -> run -> score -> report
-open results/latest/report.md
+# the report is written to results/latest/report.md
 ```
 
 ## Documentation
