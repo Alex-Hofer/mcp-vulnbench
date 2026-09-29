@@ -18,6 +18,17 @@ locations. Two lenient variants are reported too: file level (lines ignored) and
 (a finding of any of the five classes counts, not only of the case's class). Findings without one
 of the five classes, such as an `assert` or a missing request timeout, never count as a detection.
 
+## Development and test split
+Every case belongs to the development or the test half, and all cases of one repository belong to
+the same half, so a model rule written for one project's code never helps a case of the same
+project in the other half. `mcpvb split` assigns new cases: a new case of a repository that
+already has a half inherits it; the other repositories are taken in
+`sha256("mcpvb-split-v1" + repository)` order, and each joins the half that leaves its
+(language, class) strata most balanced (the test half on a tie). Existing cases never move, and
+`mcpvb validate` rejects a repository in both halves. The split is committed before any model is
+run on a real case; models are developed on the development half only and measured on the test
+half once they are frozen. The report shows both halves.
+
 ## Metrics (per variant: overall, per class, per language)
 - **Recall** = detected cases / cases whose vulnerable run is `ok`.
 - **Fix recognition** = detected cases without a persisting finding / detected cases whose fixed

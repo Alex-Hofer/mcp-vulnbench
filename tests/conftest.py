@@ -53,6 +53,7 @@ def toy_case_data(url: str, vulnerable: str, fixed: str) -> list[dict]:
             "class": "command-injection",
             "cwe": "CWE-78",
             "mcp_tool": "ping",
+            "split": "dev",
             "vulnerable": version(vulnerable, "ping", [12, 16]),
             "fixed": version(fixed, "ping", [14, 20]),
         },
@@ -63,6 +64,7 @@ def toy_case_data(url: str, vulnerable: str, fixed: str) -> list[dict]:
             "class": "path-traversal",
             "cwe": "CWE-22",
             "mcp_tool": "read_note",
+            "split": "dev",  # one repository, one half
             "vulnerable": version(vulnerable, "read_note", [19, 23]),
             "fixed": version(fixed, "read_note", [23, 29]),
         },

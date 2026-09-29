@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+from collections import Counter
 from pathlib import Path
 
 import typer
@@ -22,8 +23,9 @@ from mcpvb.run import (
     run_one,
     write_manifest,
 )
-from mcpvb.schema import Case, CaseError, load_cases
+from mcpvb.schema import Case, CaseError, Split, load_cases
 from mcpvb.score import CaseOutcome, score_case, summarize
+from mcpvb.split import assign_splits, repositories_in_both_halves, write_split
 from mcpvb.tools import ToolError, ToolVariant, load_variants
 
 app = typer.Typer(
@@ -51,14 +53,18 @@ def main(version: bool = VERSION_OPTION) -> None:
 CASES_DIR = typer.Option(Path("cases"), "--cases-dir", help="Directory with <id>/case.yaml files.")
 CASE_OPTION = typer.Option(None, "--case", help="Only this case id (repeatable).")
 TOOLS_DIR = typer.Option(Path("tools"), "--tools-dir", help="Directory with <variant>/tool.yaml.")
+SPLIT_OPTION = typer.Option(None, "--split", help="Only the cases of this half (dev or test).")
 
 
-def _load_cases_or_exit(cases_dir: Path, ids: list[str] | None = None) -> list[Case]:
+def _load_cases_or_exit(
+    cases_dir: Path, ids: list[str] | None = None, split: Split | None = None
+) -> list[Case]:
     try:
-        return load_cases(cases_dir, ids)
+        cases = load_cases(cases_dir, ids)
     except CaseError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
+    return [case for case in cases if split is None or case.split == split]
 
 
 @app.command()
@@ -67,6 +73,13 @@ def validate(cases_dir: Path = CASES_DIR, tools_dir: Path = TOOLS_DIR) -> None:
     problems: list[str] = []
     try:
         cases = load_cases(cases_dir)
+        unsplit = [case.id for case in cases if case.split is None]
+        if unsplit:
+            problems.append(
+                f"{len(unsplit)} case(s) without a split: {', '.join(unsplit)} - run `mcpvb split`"
+            )
+        for key in repositories_in_both_halves(cases):
+            problems.append(f"cases of {key} are in both halves; a repository belongs to one half")
     except CaseError as exc:
         problems.append(str(exc))
     try:
@@ -80,6 +93,23 @@ def validate(cases_dir: Path = CASES_DIR, tools_dir: Path = TOOLS_DIR) -> None:
     typer.echo(f"{len(variants)} tool variant(s) valid")
 
 
+@app.command("split")
+def split_cases(cases_dir: Path = CASES_DIR) -> None:
+    """Assign every case without a split to the dev or the test half (stratified, seeded)."""
+    cases = _load_cases_or_exit(cases_dir)
+    assigned = assign_splits(cases)
+    try:
+        for case_id, half in assigned.items():
+            write_split(cases_dir / case_id / "case.yaml", half)
+    except CaseError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+    totals = Counter(assigned.values())
+    typer.echo(
+        f"assigned {len(assigned)} case(s): dev {totals[Split.DEV]}, test {totals[Split.TEST]}"
+    )
+
+
 CACHE_DIR = typer.Option(Path(".cache"), "--cache-dir", help="Cache for repositories and sources.")
 
 
@@ -88,9 +118,10 @@ def fetch(
     cases_dir: Path = CASES_DIR,
     cache_dir: Path = CACHE_DIR,
     case: list[str] | None = CASE_OPTION,
+    split: Split | None = SPLIT_OPTION,
 ) -> None:
     """Download both versions of every case and check the ground-truth locations."""
-    cases = _load_cases_or_exit(cases_dir, case)
+    cases = _load_cases_or_exit(cases_dir, case, split)
     problems: list[str] = []
     for current in cases:
         try:
@@ -209,10 +240,11 @@ def run(
     results_dir: Path = RESULTS_DIR,
     variant: list[str] | None = VARIANT_OPTION,
     case: list[str] | None = CASE_OPTION,
+    split: Split | None = SPLIT_OPTION,
     force: bool = FORCE_OPTION,
 ) -> None:
     """Run the tool variants on both versions of every case."""
-    cases = _load_cases_or_exit(cases_dir, case)
+    cases = _load_cases_or_exit(cases_dir, case, split)
     variants = _load_variants_or_exit(tools_dir, variant)
     _preflight_or_exit()
     _run_all(cases, variants, cache_dir, results_dir, force)
@@ -293,9 +325,10 @@ def score(
     results_dir: Path = RESULTS_DIR,
     variant: list[str] | None = VARIANT_OPTION,
     case: list[str] | None = CASE_OPTION,
+    split: Split | None = SPLIT_OPTION,
 ) -> None:
     """Normalize the SARIF outputs and write metrics.json."""
-    cases = _load_cases_or_exit(cases_dir, case)
+    cases = _load_cases_or_exit(cases_dir, case, split)
     variants = _load_variants_or_exit(tools_dir, variant)
     _score(cases, variants, cache_dir, results_dir)
     typer.echo(f"wrote {results_dir / 'metrics.json'}")
@@ -309,10 +342,11 @@ def bench(
     results_dir: Path = RESULTS_DIR,
     variant: list[str] | None = VARIANT_OPTION,
     case: list[str] | None = CASE_OPTION,
+    split: Split | None = SPLIT_OPTION,
     force: bool = FORCE_OPTION,
 ) -> None:
     """validate -> fetch -> run -> score -> report in one go."""
-    cases = _load_cases_or_exit(cases_dir, case)
+    cases = _load_cases_or_exit(cases_dir, case, split)
     variants = _load_variants_or_exit(tools_dir, variant)
     _preflight_or_exit()
     _run_all(cases, variants, cache_dir, results_dir, force)

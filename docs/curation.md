@@ -39,8 +39,8 @@ detection.
    on the vulnerable path that the fix changed plus the function containing the sink reached from
    the MCP tool, even if unchanged (at most four); the fixed version lists the same functions.
    In monorepos set `subdir` to the server folder; `file` is then relative to `subdir`.
-5. Write `cases/mcpvb-NNNN/case.yaml` (template below), then run
-   `uv run mcpvb validate` and `uv run mcpvb fetch --case mcpvb-NNNN`.
+5. Write `cases/mcpvb-NNNN/case.yaml` (template below, `split: null`), then run
+   `uv run mcpvb split`, `uv run mcpvb validate` and `uv run mcpvb fetch --case mcpvb-NNNN`.
 6. Commit one case per commit: `data: add mcpvb-NNNN (CVE-...)`.
 
 ## Template
