@@ -7,10 +7,10 @@ from pathlib import PurePosixPath
 from statistics import median
 
 from mcpvb.classes import VulnClass
-from mcpvb.loc import SKIP_DIRS
+from mcpvb.loc import EXTENSIONS, SKIP_DIRS
 from mcpvb.normalize import Finding
 from mcpvb.run import Status
-from mcpvb.schema import Case, Location
+from mcpvb.schema import Case, Language, Location
 
 
 def _hits(
@@ -93,9 +93,11 @@ def score_case(
     )
 
 
-def _in_skipped_folder(file: str) -> bool:
-    """Alarm figures cover the same code as the KLOC count (see loc.SKIP_DIRS)."""
-    return bool(SKIP_DIRS.intersection(PurePosixPath(file).parts[:-1]))
+def _in_alarm_scope(file: str, language: str) -> bool:
+    """Alarm figures cover the same code as the KLOC count (see loc.count_kloc)."""
+    path = PurePosixPath(file)
+    in_language = path.suffix in EXTENSIONS[Language(language)]
+    return in_language and not SKIP_DIRS.intersection(path.parts[:-1])
 
 
 def _rate(numerator: int, denominator: int) -> float | None:
@@ -126,10 +128,11 @@ def summarize(
             if status != Status.UNSUPPORTED
         ]
         ok_cases = sorted({o.case_id for o in mine if o.status_vulnerable == Status.OK})
+        languages = {o.case_id: o.language for o in mine}
         findings = [
             f
             for f in vulnerable_findings.get(name, [])
-            if f.case_id in ok_cases and not _in_skipped_folder(f.file)
+            if f.case_id in ok_cases and _in_alarm_scope(f.file, languages[f.case_id])
         ]
         classified = [f for f in findings if f.vuln_class is not None]
         per_case = [sum(1 for f in classified if f.case_id == cid) for cid in ok_cases]

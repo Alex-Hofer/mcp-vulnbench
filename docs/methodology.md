@@ -24,7 +24,8 @@ locations. Two lenient variants are reported too: file level (lines ignored) and
 - **Alarms per KLOC** = classified findings (class among the five in scope) on the vulnerable
   versions of `ok` cases / KLOC of those versions. KLOC counts non-blank lines of the case language
   without `test`, `tests`, `node_modules`, `dist`, `build`, virtualenvs and `__pycache__`; findings
-  inside those folders are not counted either, so numerator and denominator cover the same code.
+  in files of other languages (for example workflow YAML or a web frontend) or inside those folders
+  are not counted either, so numerator and denominator cover the same code.
   Unclassified findings (same scope) are counted separately.
 - **Error rate** = runs with a status other than `ok` / all runs, without `unsupported` runs (a
   tool that does not support a language is not failing).

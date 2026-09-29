@@ -179,3 +179,15 @@ def test_alarm_figures_ignore_findings_in_skipped_folders():
     overall = summary["variants"]["v"]["overall"]
     assert overall["alarms_per_kloc"] == 1.0  # only server.py counts, like the KLOC
     assert overall["unclassified_findings"] == 0
+
+
+def test_alarm_figures_ignore_findings_outside_the_case_language():
+    outcome = score_case("v", CASE, Status.OK, Status.OK, [finding(15)], [])
+    other_languages = [
+        finding(7, file=".github/workflows/release.yml"),
+        finding(9, None, file="frontend/app.ts"),
+    ]
+    summary = summarize([outcome], {"v": [finding(15), *other_languages]}, {"mcpvb-0001": 1.0})
+    overall = summary["variants"]["v"]["overall"]
+    assert overall["alarms_per_kloc"] == 1.0  # the KLOC of a Python case counts only .py files
+    assert overall["unclassified_findings"] == 0
