@@ -1,0 +1,25 @@
+id: mcpvb-0011
+title: "SQL injection in exec_query of doris-mcp-server"
+advisories: [CVE-2025-66335, GHSA-qhfq-gvvc-5q6q]
+repo: https://github.com/apache/doris-mcp-server
+license: Apache-2.0
+language: python
+subdir: null
+class: sql-injection
+cwe: CWE-89
+mcp_tool: exec_query
+vulnerable:
+  commit: a125a2f5f831595ebfb2814f9fd7519200d90829
+  locations:
+    - {file: doris_mcp_server/utils/schema_extractor.py, function: MetadataExtractor.exec_query_for_mcp, lines: [1456, 1540]}
+    - {file: doris_mcp_server/utils/security.py, function: SQLSecurityValidator.validate, lines: [898, 937]}
+    - {file: doris_mcp_server/utils/db.py, function: DorisConnection.execute, lines: [77, 140]}
+fixed:
+  commit: e58361e04b42e89465c7f6a4457faf5b3aa798aa
+  locations:
+    - {file: doris_mcp_server/utils/schema_extractor.py, function: MetadataExtractor.exec_query_for_mcp, lines: [1573, 1681]}
+    - {file: doris_mcp_server/utils/security.py, function: SQLSecurityValidator.validate, lines: [898, 957]}
+    - {file: doris_mcp_server/utils/db.py, function: DorisConnection.execute, lines: [77, 140]}
+source: ghsa
+split: null
+notes: "The exec_query tool prepended its unvalidated db_name/catalog_name arguments as 'USE `{db_name}`; ' context statements to the query in exec_query_for_mcp, and SQLSecurityValidator.validate parsed only the first statement, so a crafted db_name smuggled additional SQL statements past validation to cursor.execute in DorisConnection.execute (Akamai write-up by Tomer Peled); the fix validates and backtick-escapes both identifiers and validates every statement. Fix: https://github.com/apache/doris-mcp-server/commit/e58361e04b42e89465c7f6a4457faf5b3aa798aa (PR #68, released in 0.6.1)"
