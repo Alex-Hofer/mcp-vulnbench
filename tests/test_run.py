@@ -9,7 +9,7 @@ from mcpvb import docker
 from mcpvb.cli import app
 from mcpvb.docker import ContainerResult
 from mcpvb.fetch import fetch_case
-from mcpvb.run import Status, read_status, run_dir, run_one
+from mcpvb.run import Status, raw_path, read_status, run_dir, run_one
 from mcpvb.schema import Language, load_cases
 from mcpvb.tools import load_variant
 
@@ -21,12 +21,32 @@ class FakeRunner:
         self.exit_code = exit_code
         self.write_sarif = write_sarif
         self.calls: list[list[str]] = []
+        self.outs: list[Path] = []
 
     def __call__(self, image, command, src, out, timeout_s):
         self.calls.append(command)
+        self.outs.append(out)
         if self.write_sarif:
             (out / "raw.sarif").write_text('{"version": "2.1.0", "runs": []}', encoding="utf-8")
         return ContainerResult(self.exit_code, "fake log", 0.25)
+
+
+class SymlinkRunner(FakeRunner):
+    """A compromised analyzer: it plants symlinks in the folder it may write to."""
+
+    def __init__(self, links: dict[str, Path]):
+        super().__init__()
+        self.links = links
+
+    def __call__(self, image, command, src, out, timeout_s):
+        result = super().__call__(image, command, src, out, timeout_s)
+        for name, target in self.links.items():
+            (out / name).unlink(missing_ok=True)
+            try:
+                os.symlink(target, out / name)
+            except OSError:
+                pytest.skip("creating symlinks is not permitted on this machine")
+        return result
 
 
 @pytest.fixture
@@ -121,7 +141,7 @@ def test_real_tool_run_on_toy_case(name, toy_cases_dir, tmp_path):
         target = REPO_ROOT / "tests" / "fixtures" / "sarif" / "real"
         target.mkdir(parents=True, exist_ok=True)
         for version in ("vulnerable", "fixed"):
-            raw = run_dir(results, name, case.id, version) / "raw.sarif"
+            raw = raw_path(results, name, case.id, version)
             fixture = target / f"{name}-toy-{version}.sarif"
             fixture.write_text(minimized_sarif(raw), encoding="utf-8")
 
@@ -174,3 +194,28 @@ def test_recorded_fixtures_carry_no_tool_message_texts():
         for sarif_run in json.loads(path.read_text(encoding="utf-8"))["runs"]:
             for result in sarif_run.get("results", []):
                 assert result["message"] == {"text": result["ruleId"]}, path.name
+
+
+def test_analyzer_output_folder_is_separate_from_harness_files(bandit, case, tmp_path):
+    runner = FakeRunner()
+    results = tmp_path / "results"
+    run_one(bandit, case, "vulnerable", tmp_path, results, runner)
+    folder = run_dir(results, "bandit", case.id, "vulnerable")
+    assert runner.outs == [folder / "tool"]
+    assert (folder / "meta.json").is_file() and (folder / "log.txt").is_file()
+
+
+def test_symlinked_analyzer_output_is_rejected(bandit, case, tmp_path):
+    elsewhere = tmp_path / "elsewhere.sarif"
+    elsewhere.write_text('{"version": "2.1.0", "runs": []}', encoding="utf-8")
+    runner = SymlinkRunner({"raw.sarif": elsewhere})
+    status = run_one(bandit, case, "vulnerable", tmp_path, tmp_path / "results", runner)
+    assert status is Status.ERROR
+
+
+def test_harness_never_writes_through_analyzer_symlinks(bandit, case, tmp_path):
+    victim = tmp_path / "victim.txt"
+    victim.write_text("untouched", encoding="utf-8")
+    runner = SymlinkRunner({"log.txt": victim, "meta.json": victim})
+    run_one(bandit, case, "vulnerable", tmp_path, tmp_path / "results", runner)
+    assert victim.read_text(encoding="utf-8") == "untouched"

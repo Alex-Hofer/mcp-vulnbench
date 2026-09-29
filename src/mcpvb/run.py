@@ -16,6 +16,7 @@ from mcpvb.tools import ToolVariant
 VERSIONS = ("vulnerable", "fixed")
 META = "meta.json"
 RAW = "raw.sarif"
+TOOL_DIR = "tool"  # the only folder the analyzer container may write to
 
 ContainerRunner = Callable[[str, list[str], Path, Path, int], ContainerResult]
 
@@ -30,6 +31,10 @@ class Status(StrEnum):
 
 def run_dir(results: Path, variant: str, case_id: str, version: str) -> Path:
     return results / variant / case_id / version
+
+
+def raw_path(results: Path, variant: str, case_id: str, version: str) -> Path:
+    return run_dir(results, variant, case_id, version) / TOOL_DIR / RAW
 
 
 def read_status(results: Path, variant: str, case_id: str, version: str) -> Status | None:
@@ -56,7 +61,10 @@ def run_one(
     out = run_dir(results, variant.name, case.id, version)
     if out.exists():
         shutil.rmtree(out)
-    out.mkdir(parents=True)
+    # The container writes only into out/tool; the harness writes only into out. A compromised
+    # analyzer can therefore not redirect harness writes through symlinks.
+    tool_out = out / TOOL_DIR
+    tool_out.mkdir(parents=True)
     started = datetime.now(UTC).isoformat(timespec="seconds")
     exit_code: int | None = None
     duration = 0.0
@@ -66,12 +74,13 @@ def run_one(
         status, log = Status.UNSUPPORTED, f"{variant.name} does not support {case.language}"
     else:
         result = runner(
-            variant.image, variant.render_command(case.language), src, out, variant.timeout_s
+            variant.image, variant.render_command(case.language), src, tool_out, variant.timeout_s
         )
         exit_code, duration, log = result.exit_code, result.duration_s, result.output
+        raw = tool_out / RAW
         if exit_code is None:
             status = Status.TIMEOUT
-        elif exit_code != 0 or not (out / RAW).is_file():
+        elif exit_code != 0 or not raw.is_file() or raw.is_symlink():
             status = Status.ERROR
         else:
             status = Status.OK

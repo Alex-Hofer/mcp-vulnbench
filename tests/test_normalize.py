@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -104,9 +105,9 @@ def test_broken_sarif_raises(tmp_path, content):
 
 def ok_run(results: Path, doc_text: str) -> Path:
     folder = run_dir(results, "bandit", "mcpvb-0001", "vulnerable")
-    folder.mkdir(parents=True)
+    (folder / "tool").mkdir(parents=True)
     (folder / "meta.json").write_text(json.dumps({"status": "ok"}), encoding="utf-8")
-    (folder / "raw.sarif").write_text(doc_text, encoding="utf-8")
+    (folder / "tool" / "raw.sarif").write_text(doc_text, encoding="utf-8")
     return folder
 
 
@@ -139,3 +140,17 @@ def test_recorded_bandit_output_contains_shell_true():
         f.rule_id == "B602" and f.line == 15 and f.vuln_class is VulnClass.COMMAND_INJECTION
         for f in findings
     )
+
+
+def test_symlinked_sarif_counts_as_error(tmp_path):
+    folder = run_dir(tmp_path, "bandit", "mcpvb-0001", "vulnerable")
+    (folder / "tool").mkdir(parents=True)
+    (folder / "meta.json").write_text(json.dumps({"status": "ok"}), encoding="utf-8")
+    elsewhere = tmp_path / "elsewhere.sarif"
+    elsewhere.write_text(json.dumps(sarif([])), encoding="utf-8")
+    try:
+        os.symlink(elsewhere, folder / "tool" / "raw.sarif")
+    except OSError:
+        pytest.skip("creating symlinks is not permitted on this machine")
+    status, findings = load_run(tmp_path, "bandit", "mcpvb-0001", "vulnerable")
+    assert status is Status.ERROR and findings == []

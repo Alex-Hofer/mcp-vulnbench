@@ -9,7 +9,7 @@ from urllib.parse import unquote, urlparse
 from pydantic import BaseModel
 
 from mcpvb.classes import VulnClass, class_for_cwe, cwe_number, cwes_in_text
-from mcpvb.run import RAW, Status, read_status, run_dir
+from mcpvb.run import Status, raw_path, read_status, run_dir
 
 SRC_PREFIX = "/src/"
 FINDINGS = "findings.json"
@@ -127,7 +127,10 @@ def load_run(
         return status, []
     folder = run_dir(results, variant, case_id, version)
     try:
-        findings = parse_sarif(folder / RAW, variant, case_id, version, overrides)
+        raw = raw_path(results, variant, case_id, version)
+        if raw.is_symlink():
+            raise NormalizeError(f"{raw}: is a symlink; analyzer output must be a regular file")
+        findings = parse_sarif(raw, variant, case_id, version, overrides)
     except NormalizeError as exc:
         (folder / "normalize-error.txt").write_text(str(exc), encoding="utf-8")
         return Status.ERROR, []

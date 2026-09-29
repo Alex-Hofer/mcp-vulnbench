@@ -62,6 +62,9 @@ found". A run whose tool exits 0 but writes no valid SARIF is an `error`. A run 
 The analyzers never execute the analyzed code (CodeQL extracts Python and JavaScript without a
 build). Containers still run with `--network none`, the sources mounted read-only, a non-root user
 and CPU/memory limits. Source archives are extracted with Python's `data` filter; links are skipped.
+An analyzer may write only into `<run>/tool/`; the harness keeps its own files (`meta.json`,
+`log.txt`, `findings.json`) one level up and reads `raw.sarif` only if it is a regular file, so a
+compromised analyzer cannot redirect harness writes through symlinks.
 
 ## Tool configuration policy
 
