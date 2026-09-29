@@ -1,0 +1,21 @@
+id: mcpvb-0023
+title: "SSRF in fetch_pagination_url of facebook-ads-mcp-server"
+advisories: [CVE-2026-19956, GHSA-8xwh-hx55-jjpr]
+repo: https://github.com/gomarble-ai/facebook-ads-mcp-server
+license: MIT
+language: python
+subdir: null
+class: ssrf
+cwe: CWE-918
+mcp_tool: fetch_pagination_url
+vulnerable:
+  commit: 1a9406e9a8ccdab9260926075bd4a439140b0f81
+  locations:
+    - {file: server.py, function: fetch_pagination_url, lines: [792, 819]}
+fixed:
+  commit: 4e53875aa22e8991c2fa4a7660d86e1caba66659
+  locations:
+    - {file: server.py, function: fetch_pagination_url, lines: [793, 840]}
+source: ghsa
+split: null
+notes: "The fetch_pagination_url tool, meant to follow Graph API paging links, passed its url argument directly to requests.get (following redirects), so any host could be requested, including loopback, private and cloud-metadata addresses. The fix only allows https://graph.facebook.com URLs (default port, no userinfo or control characters) and disables redirects. Fix: https://github.com/gomarble-ai/facebook-ads-mcp-server/pull/32 (squash commit 4e53875aa22e8991c2fa4a7660d86e1caba66659)"
