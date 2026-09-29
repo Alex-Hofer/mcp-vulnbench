@@ -135,3 +135,11 @@ def test_drive_paths_are_rejected(tmp_path):
     data = variant(vulnerable={"commit": "a" * 40, "locations": [location(file=r"C:\secret\x.py")]})
     with pytest.raises(CaseError, match="relative path inside the repository"):
         load_case(write_case(tmp_path, data))
+
+
+def test_misnamed_case_files_are_reported(tmp_path):
+    folder = tmp_path / "mcpvb-0001"
+    folder.mkdir()
+    (folder / "case.yml").write_text(yaml.safe_dump(VALID), encoding="utf-8")
+    with pytest.raises(CaseError, match="must be named case.yaml"):
+        load_cases(tmp_path)

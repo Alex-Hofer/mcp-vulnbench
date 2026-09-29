@@ -28,3 +28,20 @@ def test_validate_reports_invalid_cases(tmp_path):
     result = CliRunner().invoke(app, ["validate", "--cases-dir", str(tmp_path)])
     assert result.exit_code == 1
     assert "Field required" in result.output
+
+
+def test_validate_checks_the_tool_variants(tmp_path):
+    (tmp_path / "cases").mkdir()
+    broken = tmp_path / "tools" / "x"
+    broken.mkdir(parents=True)
+    (broken / "tool.yaml").write_text("name: x\n", encoding="utf-8")
+    args = [
+        "validate",
+        "--cases-dir",
+        str(tmp_path / "cases"),
+        "--tools-dir",
+        str(tmp_path / "tools"),
+    ]
+    result = CliRunner().invoke(app, args)
+    assert result.exit_code == 1
+    assert "Field required" in result.output

@@ -59,6 +59,8 @@ def load_variant(path: Path) -> ToolVariant:
 
 def load_variants(tools_dir: Path, names: list[str] | None = None) -> list[ToolVariant]:
     variants = [load_variant(path) for path in sorted(tools_dir.glob("*/tool.yaml"))]
+    if not variants:
+        raise ToolError(f"no tool variants found in {tools_dir} (expected <variant>/tool.yaml)")
     if names:
         unknown = sorted(set(names) - {variant.name for variant in variants})
         if unknown:

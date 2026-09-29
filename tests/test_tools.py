@@ -60,3 +60,8 @@ def test_in_source_suppressions_are_ignored():
     assert "--ignore-nosec" in load_variant(TOOLS / "bandit" / "tool.yaml").command
     for name in ("semgrep-default", "semgrep-mcp"):
         assert "--disable-nosem" in load_variant(TOOLS / name / "tool.yaml").command
+
+
+def test_empty_tools_folder_is_an_error(tmp_path):
+    with pytest.raises(ToolError, match="no tool variants found"):
+        load_variants(tmp_path)

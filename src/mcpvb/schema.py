@@ -166,7 +166,13 @@ def load_cases(cases_dir: Path, ids: list[str] | None = None) -> list[Case]:
         raise CaseError(f"{cases_dir} is not a directory")
     errors: list[str] = []
     cases: list[Case] = []
-    for path in sorted(cases_dir.glob("*/case.yaml")):
+    folders = [p for p in cases_dir.iterdir() if p.is_dir() and not p.name.startswith(".")]
+    for folder in sorted(folders):
+        path = folder / "case.yaml"
+        if not path.is_file():
+            found = ", ".join(sorted(p.name for p in folder.iterdir())) or "nothing"
+            errors.append(f"{folder}: the case file must be named case.yaml (found: {found})")
+            continue
         try:
             cases.append(load_case(path))
         except CaseError as exc:

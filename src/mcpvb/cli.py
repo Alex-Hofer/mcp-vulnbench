@@ -41,6 +41,7 @@ def main(version: bool = VERSION_OPTION) -> None:
 
 CASES_DIR = typer.Option(Path("cases"), "--cases-dir", help="Directory with <id>/case.yaml files.")
 CASE_OPTION = typer.Option(None, "--case", help="Only this case id (repeatable).")
+TOOLS_DIR = typer.Option(Path("tools"), "--tools-dir", help="Directory with <variant>/tool.yaml.")
 
 
 def _load_cases_or_exit(cases_dir: Path, ids: list[str] | None = None) -> list[Case]:
@@ -52,10 +53,22 @@ def _load_cases_or_exit(cases_dir: Path, ids: list[str] | None = None) -> list[C
 
 
 @app.command()
-def validate(cases_dir: Path = CASES_DIR) -> None:
-    """Check all case files against the schema and the cross-case rules."""
-    cases = _load_cases_or_exit(cases_dir)
+def validate(cases_dir: Path = CASES_DIR, tools_dir: Path = TOOLS_DIR) -> None:
+    """Check all case files and tool variants."""
+    problems: list[str] = []
+    try:
+        cases = load_cases(cases_dir)
+    except CaseError as exc:
+        problems.append(str(exc))
+    try:
+        variants = load_variants(tools_dir)
+    except ToolError as exc:
+        problems.append(str(exc))
+    if problems:
+        typer.echo("\n".join(problems), err=True)
+        raise typer.Exit(code=1)
     typer.echo(f"{len(cases)} case(s) valid")
+    typer.echo(f"{len(variants)} tool variant(s) valid")
 
 
 CACHE_DIR = typer.Option(Path(".cache"), "--cache-dir", help="Cache for repositories and sources.")
@@ -84,7 +97,6 @@ def fetch(
     typer.echo(f"{len(cases)} case(s) fetched into {cache_dir}")
 
 
-TOOLS_DIR = typer.Option(Path("tools"), "--tools-dir", help="Directory with <variant>/tool.yaml.")
 VARIANT_OPTION = typer.Option(None, "--variant", help="Only this tool variant (repeatable).")
 
 
