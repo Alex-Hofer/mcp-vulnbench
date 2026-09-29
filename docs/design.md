@@ -85,8 +85,11 @@ committed `.semgrepignore` could switch Semgrep off for the whole repository. So
 ## Reproducibility
 
 Tool versions and the semgrep-rules commit are pinned in `docker/*/Dockerfile` and
-`tools/*/tool.yaml`; every run writes the local image IDs to `manifest.json`. Two runs with the same
-images produce the same `metrics.json`.
+`tools/*/tool.yaml`. Base images are pinned by digest, the CodeQL bundle and the semgrep-rules
+archive are verified against SHA-256 checksums while the images are built, and Bandit's
+dependencies are pinned in `docker/bandit/constraints.txt`. Every run writes the local image IDs to
+`manifest.json`, and `.python-version` keeps local development on the Python version CI uses. Two
+runs with the same images produce the same `metrics.json` (checked by the smoke test).
 
 ## Legal
 

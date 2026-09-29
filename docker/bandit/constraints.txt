@@ -1,0 +1,13 @@
+attrs==26.1.0
+bandit==1.9.4
+jschema-to-python==1.2.3
+jsonpickle==4.1.2
+markdown-it-py==4.2.0
+mdurl==0.1.2
+pbr==7.0.3
+Pygments==2.21.0
+PyYAML==6.0.3
+rich==15.0.0
+sarif-om==1.0.4
+setuptools==84.0.0
+stevedore==5.9.1
