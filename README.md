@@ -37,7 +37,8 @@ in their default configuration:
 - The Semgrep MCP rules (`ai/ai-best-practices/mcp-*`) treat the parameters of `@<server>.tool()`
   functions as sources, but Semgrep CE follows taint only within one function: as soon as a tool
   hands its argument to a helper, as most real servers do, the rules see nothing. The SSRF rule
-  also knows only `requests` and `urllib` as sinks, not `httpx`.
+  also knows only `requests` and `urllib` as sinks, not `httpx`, and there is no MCP rule for
+  file paths.
 
 Limitations: 26 cases is a small sample; one case moves a variant's recall by about four
 percentage points, and code injection is represented by two cases from one repository. Only
