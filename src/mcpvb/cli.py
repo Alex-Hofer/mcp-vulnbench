@@ -5,6 +5,7 @@ from pathlib import Path
 import typer
 
 from mcpvb import __version__
+from mcpvb.fetch import FetchError, check_locations, fetch_case
 from mcpvb.schema import Case, CaseError, load_cases
 
 app = typer.Typer(
@@ -46,3 +47,29 @@ def validate(cases_dir: Path = CASES_DIR) -> None:
     """Check all case files against the schema and the cross-case rules."""
     cases = _load_cases_or_exit(cases_dir)
     typer.echo(f"{len(cases)} case(s) valid")
+
+
+CACHE_DIR = typer.Option(Path(".cache"), "--cache-dir", help="Cache for repositories and sources.")
+
+
+@app.command()
+def fetch(
+    cases_dir: Path = CASES_DIR,
+    cache_dir: Path = CACHE_DIR,
+    case: list[str] | None = CASE_OPTION,
+) -> None:
+    """Download both versions of every case and check the ground-truth locations."""
+    cases = _load_cases_or_exit(cases_dir, case)
+    problems: list[str] = []
+    for current in cases:
+        try:
+            sources = fetch_case(current, cache_dir)
+        except FetchError as exc:
+            problems.append(f"{current.id}: {exc}")
+            continue
+        problems += check_locations(current, sources)
+    for problem in problems:
+        typer.echo(problem, err=True)
+    if problems:
+        raise typer.Exit(code=1)
+    typer.echo(f"{len(cases)} case(s) fetched into {cache_dir}")
