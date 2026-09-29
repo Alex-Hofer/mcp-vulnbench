@@ -11,3 +11,4 @@ cwe_overrides:
   B102: CWE-95   # exec_used: tagged CWE-78 by Bandit
   B307: CWE-95   # eval: tagged CWE-78 by Bandit
   B310: CWE-918  # urllib urlopen: tagged CWE-22 by Bandit
+  B701: CWE-79   # jinja2 autoescape=False: cross-site scripting, tagged CWE-94 by Bandit

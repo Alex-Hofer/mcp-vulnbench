@@ -140,9 +140,10 @@ def _details_table(variants: dict, names: list[str]) -> list[str]:
 
 def render_chart(metrics: dict, path: Path) -> None:
     """Horizontal bars of overall recall per variant; the report table is the accessible view."""
-    matplotlib.rcParams["svg.hashsalt"] = "mcpvb"
-    fig = chart_figure(metrics)
-    fig.savefig(path, format="svg", metadata={"Date": None}, facecolor=SURFACE)
+    # A fixed hash salt makes the SVG ids reproducible; set it only while this chart is saved.
+    with matplotlib.rc_context({"svg.hashsalt": "mcpvb"}):
+        fig = chart_figure(metrics)
+        fig.savefig(path, format="svg", metadata={"Date": None}, facecolor=SURFACE)
     plt.close(fig)
 
 

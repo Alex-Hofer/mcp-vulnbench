@@ -73,3 +73,8 @@ def test_tool_file_in_another_encoding_is_reported(tmp_path):
     (folder / "tool.yaml").write_bytes("name: Größe\n".encode("cp1252"))
     with pytest.raises(ToolError, match="UTF-8"):
         load_variant(folder / "tool.yaml")
+
+
+def test_bandit_jinja_autoescape_is_not_code_injection():
+    # B701 (autoescape=False) is cross-site scripting; Bandit tags it CWE-94 (code injection).
+    assert load_variant(TOOLS / "bandit" / "tool.yaml").cwe_overrides["B701"] == "CWE-79"
