@@ -1,0 +1,27 @@
+id: mcpvb-0010
+title: "Server-side request forgery via X-Atlassian-*-Url headers in jira_get_issue of mcp-atlassian"
+advisories: [CVE-2026-27826, GHSA-7r34-79r5-rcc9]
+repo: https://github.com/sooperset/mcp-atlassian
+license: MIT
+language: python
+subdir: null
+class: ssrf
+cwe: CWE-918
+mcp_tool: jira_get_issue
+vulnerable:
+  commit: 52b9b0997681e87244b20d58034deae89c91631e
+  locations:
+    - {file: src/mcp_atlassian/servers/main.py, function: UserTokenMiddleware._process_authentication_headers, lines: [435, 533]}
+    - {file: src/mcp_atlassian/servers/dependencies.py, function: get_jira_fetcher, lines: [229, 427]}
+    - {file: src/mcp_atlassian/servers/dependencies.py, function: get_confluence_fetcher, lines: [430, 673]}
+    - {file: src/mcp_atlassian/jira/client.py, function: JiraClient.__init__, lines: [36, 176]}
+fixed:
+  commit: 5cd697dfce9116ef330b8dc7a91291640e0528d9
+  locations:
+    - {file: src/mcp_atlassian/servers/main.py, function: UserTokenMiddleware._process_authentication_headers, lines: [436, 551]}
+    - {file: src/mcp_atlassian/servers/dependencies.py, function: get_jira_fetcher, lines: [259, 462]}
+    - {file: src/mcp_atlassian/servers/dependencies.py, function: get_confluence_fetcher, lines: [465, 713]}
+    - {file: src/mcp_atlassian/jira/client.py, function: JiraClient.__init__, lines: [36, 176]}
+source: ghsa
+split: null
+notes: "In the HTTP transports the tainted value is the X-Atlassian-Jira-Url / X-Atlassian-Confluence-Url request header (not a tool argument): UserTokenMiddleware stores it unvalidated, and get_jira_fetcher/get_confluence_fetcher, which every Jira/Confluence tool call awaits, build a client for that URL (JiraClient.__init__ passes it to Jira(url=...)) and immediately request {url}/rest/api/2/myself; the fix validates both header URLs (scheme, private/reserved IPs, DNS resolution, optional domain allowlist) in the middleware and adds a redirect-blocking hook to header-based sessions. Fix: https://github.com/sooperset/mcp-atlassian/commit/5cd697dfce9116ef330b8dc7a91291640e0528d9"
