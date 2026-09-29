@@ -93,3 +93,23 @@ def test_tool_configs_of_the_analyzed_project_are_not_exported():
     for name in (".bandit", "src/.semgrepignore"):
         assert fetch_module._regular_files_only(tarfile.TarInfo(name), "dest") is None, name
     assert fetch_module._regular_files_only(tarfile.TarInfo("src/server.py"), "dest") is not None
+
+
+def with_location(case, version: str, **changes):
+    target = getattr(case, version)
+    location = target.locations[0].model_copy(update=changes)
+    return case.model_copy(update={version: target.model_copy(update={"locations": [location]})})
+
+
+def test_location_must_name_an_existing_function(toy_cases_dir, tmp_path):
+    case = load_cases(toy_cases_dir, ["mcpvb-9001"])[0]
+    sources = fetch_case(case, tmp_path / "cache")
+    problems = check_locations(with_location(case, "vulnerable", function="pong"), sources)
+    assert any("function pong not found" in problem for problem in problems)
+
+
+def test_location_lines_must_match_the_function(toy_cases_dir, tmp_path):
+    case = load_cases(toy_cases_dir, ["mcpvb-9001"])[0]
+    sources = fetch_case(case, tmp_path / "cache")
+    problems = check_locations(with_location(case, "fixed", lines=(15, 20)), sources)
+    assert any("ping spans [14, 20]" in problem for problem in problems)

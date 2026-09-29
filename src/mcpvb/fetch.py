@@ -10,7 +10,8 @@ import tarfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
-from mcpvb.schema import Case
+from mcpvb.curate import python_functions
+from mcpvb.schema import Case, Location
 
 DONE_MARKER = ".mcpvb-fetched"
 TOOL_CONFIG_FILES = frozenset({".bandit", ".semgrepignore"})
@@ -117,4 +118,25 @@ def check_locations(case: Case, sources: CaseSources) -> list[str]:
                     f"{case.id} {name}: lines {list(loc.lines)} "
                     f"exceed the {n_lines} lines of {loc.file}"
                 )
+            elif loc.file.endswith(".py"):
+                problems += [f"{case.id} {name}: {p}" for p in _check_python_function(loc, path)]
     return problems
+
+
+def _check_python_function(loc: Location, path: Path) -> list[str]:
+    """The location must cover exactly the named function (first decorator to last line)."""
+    try:
+        functions = python_functions(path)
+    except (SyntaxError, ValueError) as exc:
+        return [f"cannot parse {loc.file}: {exc}"]
+    matches = [
+        (qualified, start, end)
+        for qualified, start, end in functions
+        if loc.function in (qualified, qualified.rsplit(".", 1)[-1])
+    ]
+    if not matches:
+        return [f"function {loc.function} not found in {loc.file}"]
+    if any((start, end) == loc.lines for _, start, end in matches):
+        return []
+    spans = ", ".join(f"{qualified} spans [{start}, {end}]" for qualified, start, end in matches)
+    return [f"lines {list(loc.lines)} do not match the function: {spans}"]
