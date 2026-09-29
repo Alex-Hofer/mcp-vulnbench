@@ -41,3 +41,10 @@ def test_every_variant_image_is_pinned_or_builds_on_a_declared_variant_image():
             assert froms == [v.base_image] and v.base_image in images, v.name
         else:
             assert froms and all("@sha256:" in base for base in froms), v.name
+
+
+def test_codeql_mcp_refuses_a_base_that_ignores_analyze_options():
+    dockerfile = (REPO_ROOT / "models" / "codeql" / "Dockerfile").read_text(encoding="utf-8")
+    script = (DOCKER / "codeql" / "run-codeql.sh").read_text(encoding="utf-8")
+    assert "grep -q 'shift 3' /usr/local/bin/run-codeql.sh" in dockerfile
+    assert "shift 3" in script and '"$@"' in script  # the marker the check relies on

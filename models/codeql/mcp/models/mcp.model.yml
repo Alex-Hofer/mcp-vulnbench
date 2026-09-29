@@ -1,25 +1,44 @@
 # Sources for MCP servers built with the official Python SDK (package "mcp"). Every parameter of
 # a tool, resource or prompt handler is input the server receives through MCP, chosen by a model
 # that prompt injection can steer (docs/curation.md, criterion 5).
+#
+# Types: "X!" is the class X itself, "X" its instances (including subclasses and parameters
+# annotated with X). SDK 1.x calls the high-level server FastMCP, SDK 2.x MCPServer.
 extensions:
+  - addsTo:
+      pack: codeql/python-all
+      extensible: typeModel
+    data:
+      - ["mcp.server.fastmcp.FastMCP!", "mcp", "Member[server].Member[fastmcp].Member[FastMCP]"]
+      - ["mcp.server.fastmcp.FastMCP!", "mcp", "Member[server].Member[fastmcp].Member[server].Member[FastMCP]"]
+      - ["mcp.server.fastmcp.FastMCP", "mcp.server.fastmcp.FastMCP!", "Instance"]
+      - ["mcp.server.mcpserver.MCPServer!", "mcp", "Member[server].Member[MCPServer]"]
+      - ["mcp.server.mcpserver.MCPServer!", "mcp", "Member[server].Member[mcpserver].Member[MCPServer]"]
+      - ["mcp.server.mcpserver.MCPServer!", "mcp", "Member[server].Member[mcpserver].Member[server].Member[MCPServer]"]
+      - ["mcp.server.mcpserver.MCPServer", "mcp.server.mcpserver.MCPServer!", "Instance"]
+      - ["mcp.server.lowlevel.Server!", "mcp", "Member[server].Member[Server]"]
+      - ["mcp.server.lowlevel.Server!", "mcp", "Member[server].Member[lowlevel].Member[Server]"]
+      - ["mcp.server.lowlevel.Server!", "mcp", "Member[server].Member[lowlevel].Member[server].Member[Server]"]
+      - ["mcp.server.lowlevel.Server", "mcp.server.lowlevel.Server!", "Instance"]
+
   - addsTo:
       pack: codeql/python-all
       extensible: sourceModel
     data:
-      - ["mcp", "Member[server].Member[fastmcp].Member[FastMCP].ReturnValue.Member[tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[fastmcp].Member[FastMCP].ReturnValue.Member[resource].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[fastmcp].Member[FastMCP].ReturnValue.Member[prompt].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[fastmcp].Member[FastMCP].ReturnValue.Member[add_tool].Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[fastmcp].Member[server].Member[FastMCP].ReturnValue.Member[tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[fastmcp].Member[server].Member[FastMCP].ReturnValue.Member[resource].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[fastmcp].Member[server].Member[FastMCP].ReturnValue.Member[prompt].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[fastmcp].Member[server].Member[FastMCP].ReturnValue.Member[add_tool].Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[Server].ReturnValue.Member[call_tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[Server].ReturnValue.Member[read_resource].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[Server].ReturnValue.Member[get_prompt].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[lowlevel].Member[Server].ReturnValue.Member[call_tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[lowlevel].Member[Server].ReturnValue.Member[read_resource].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[lowlevel].Member[Server].ReturnValue.Member[get_prompt].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[lowlevel].Member[server].Member[Server].ReturnValue.Member[call_tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[lowlevel].Member[server].Member[Server].ReturnValue.Member[read_resource].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["mcp", "Member[server].Member[lowlevel].Member[server].Member[Server].ReturnValue.Member[get_prompt].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      # High-level server: @server.tool(), @server.resource(uri), @server.prompt(), add_tool(fn)
+      - ["mcp.server.fastmcp.FastMCP", "Member[tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["mcp.server.fastmcp.FastMCP", "Member[resource].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["mcp.server.fastmcp.FastMCP", "Member[prompt].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["mcp.server.fastmcp.FastMCP", "Member[add_tool].Argument[0,fn:].Parameter[any]", "remote"]
+      - ["mcp.server.mcpserver.MCPServer", "Member[tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["mcp.server.mcpserver.MCPServer", "Member[resource].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["mcp.server.mcpserver.MCPServer", "Member[prompt].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["mcp.server.mcpserver.MCPServer", "Member[add_tool].Argument[0,fn:].Parameter[any]", "remote"]
+      # Low-level server, SDK 1.x: decorated request handlers
+      - ["mcp.server.lowlevel.Server", "Member[call_tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["mcp.server.lowlevel.Server", "Member[read_resource].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["mcp.server.lowlevel.Server", "Member[get_prompt].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      # Low-level server, SDK 2.x: handlers passed to the constructor receive (ctx, params)
+      - ["mcp.server.lowlevel.Server!", "Argument[on_call_tool:].Parameter[1].Member[arguments]", "remote"]
+      - ["mcp.server.lowlevel.Server!", "Argument[on_read_resource:].Parameter[1].Member[uri]", "remote"]
+      - ["mcp.server.lowlevel.Server!", "Argument[on_get_prompt:].Parameter[1].Member[arguments]", "remote"]

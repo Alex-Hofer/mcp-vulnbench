@@ -1,12 +1,33 @@
-# Sources for MCP servers built with the package "fastmcp" (2.x). Decorators work both bare
-# (@app.tool) and called (@app.tool(...)); both forms are modeled.
+# Sources for MCP servers built with the package "fastmcp" (2.x to 4.x). Decorators work bare
+# (@app.tool), called (@app.tool(...)) and as plain calls (app.tool(fn)); all forms are modeled.
+# The HTTP headers of the MCP transport are input the server receives through MCP as well.
 extensions:
+  - addsTo:
+      pack: codeql/python-all
+      extensible: typeModel
+    data:
+      - ["fastmcp.FastMCP!", "fastmcp", "Member[FastMCP]"]
+      - ["fastmcp.FastMCP!", "fastmcp", "Member[server].Member[FastMCP]"]
+      - ["fastmcp.FastMCP!", "fastmcp", "Member[server].Member[server].Member[FastMCP]"]
+      - ["fastmcp.FastMCP", "fastmcp.FastMCP!", "Instance"]
+      - ["fastmcp.tools.Tool!", "fastmcp", "Member[tools].Member[Tool]"]
+      - ["fastmcp.tools.Tool!", "fastmcp", "Member[tools].Member[FunctionTool]"]
+      - ["fastmcp.tools.Tool!", "fastmcp", "Member[tools].Member[base].Member[Tool]"]
+      - ["fastmcp.tools.Tool!", "fastmcp", "Member[tools].Member[function_tool].Member[FunctionTool]"]
+
   - addsTo:
       pack: codeql/python-all
       extensible: sourceModel
     data:
-      - ["fastmcp", "Member[FastMCP].ReturnValue.Member[tool].Argument[0].Parameter[any]", "remote"]
-      - ["fastmcp", "Member[FastMCP].ReturnValue.Member[tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["fastmcp", "Member[FastMCP].ReturnValue.Member[resource].ReturnValue.Argument[0].Parameter[any]", "remote"]
-      - ["fastmcp", "Member[FastMCP].ReturnValue.Member[prompt].Argument[0].Parameter[any]", "remote"]
-      - ["fastmcp", "Member[FastMCP].ReturnValue.Member[prompt].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["fastmcp.FastMCP", "Member[tool].Argument[0,name_or_fn:].Parameter[any]", "remote"]
+      - ["fastmcp.FastMCP", "Member[tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["fastmcp.FastMCP", "Member[resource].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["fastmcp.FastMCP", "Member[prompt].Argument[0,name_or_fn:].Parameter[any]", "remote"]
+      - ["fastmcp.FastMCP", "Member[prompt].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["fastmcp.FastMCP", "Member[add_tool].Argument[0,tool:].Parameter[any]", "remote"]
+      - ["fastmcp.FastMCP", "Member[add_prompt].Argument[0,prompt:].Parameter[any]", "remote"]
+      - ["fastmcp.tools.Tool!", "Member[from_function].Argument[0,fn:].Parameter[any]", "remote"]
+      - ["fastmcp", "Member[tools].Member[tool].Argument[0,name_or_fn:].Parameter[any]", "remote"]
+      - ["fastmcp", "Member[tools].Member[tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["fastmcp", "Member[server].Member[dependencies].Member[get_http_headers].ReturnValue", "remote"]
+      - ["fastmcp", "Member[server].Member[dependencies].Member[get_http_request].ReturnValue.Member[headers]", "remote"]
