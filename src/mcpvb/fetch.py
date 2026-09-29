@@ -96,9 +96,12 @@ def check_locations(case: Case, sources: CaseSources) -> list[str]:
     problems: list[str] = []
     for name, version in (("vulnerable", case.vulnerable), ("fixed", case.fixed)):
         root = sources.for_version(name)
+        # Exact names, not path.is_file(): Windows would accept Server.py for server.py, while
+        # the SARIF matching is case-sensitive.
+        names = {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()}
         for loc in version.locations:
             path = root / loc.file
-            if not path.is_file():
+            if loc.file not in names:
                 problems.append(f"{case.id} {name}: {loc.file} not found at {version.commit[:12]}")
                 continue
             n_lines = len(path.read_text(encoding="utf-8", errors="replace").splitlines())

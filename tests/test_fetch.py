@@ -77,3 +77,12 @@ def test_missing_subdir_is_a_fetch_error(toy_cases_dir, tmp_path):
     case = load_cases(toy_cases_dir, ["mcpvb-9001"])[0].model_copy(update={"subdir": "servers/git"})
     with pytest.raises(FetchError, match="subdir 'servers/git' not found"):
         fetch_case(case, tmp_path / "cache")
+
+
+def test_file_names_must_match_exactly(toy_cases_dir, tmp_path):
+    case = load_cases(toy_cases_dir, ["mcpvb-9001"])[0]
+    sources = fetch_case(case, tmp_path / "cache")
+    wrong_case = case.vulnerable.locations[0].model_copy(update={"file": "Server.py"})
+    version = case.vulnerable.model_copy(update={"locations": [wrong_case]})
+    problems = check_locations(case.model_copy(update={"vulnerable": version}), sources)
+    assert any("Server.py not found" in problem for problem in problems)
