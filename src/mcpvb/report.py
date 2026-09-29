@@ -154,9 +154,11 @@ def _details_table(variants: dict, names: list[str]) -> list[str]:
 def render_chart(metrics: dict, path: Path) -> None:
     """Horizontal bars of overall recall per variant; the report table is the accessible view."""
     # A fixed hash salt makes the SVG ids reproducible; set it only while this chart is saved.
+    # LF line endings on every system, so the file is byte-identical everywhere.
     with matplotlib.rc_context({"svg.hashsalt": "mcpvb"}):
         fig = chart_figure(metrics)
-        fig.savefig(path, format="svg", metadata={"Date": None}, facecolor=SURFACE)
+        with path.open("w", encoding="utf-8", newline="\n") as handle:
+            fig.savefig(handle, format="svg", metadata={"Date": None}, facecolor=SURFACE)
     plt.close(fig)
 
 
@@ -191,6 +193,6 @@ def write_report(results: Path) -> Path:
         json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else None
     )
     report = results / "report.md"
-    report.write_text(render_report(metrics, manifest), encoding="utf-8")
+    report.write_text(render_report(metrics, manifest), encoding="utf-8", newline="\n")
     render_chart(metrics, results / "recall.svg")
     return report

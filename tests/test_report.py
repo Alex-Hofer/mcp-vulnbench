@@ -110,3 +110,10 @@ def test_rendering_the_chart_keeps_global_matplotlib_settings(tmp_path):
     with matplotlib.rc_context({"svg.hashsalt": None}):
         render_chart(METRICS, tmp_path / "recall.svg")
         assert matplotlib.rcParams["svg.hashsalt"] is None
+
+
+def test_report_files_use_lf_line_endings_on_every_system(tmp_path):
+    (tmp_path / "metrics.json").write_text(json.dumps(METRICS), encoding="utf-8")
+    write_report(tmp_path)
+    for name in ("report.md", "recall.svg"):
+        assert b"\r\n" not in (tmp_path / name).read_bytes(), name

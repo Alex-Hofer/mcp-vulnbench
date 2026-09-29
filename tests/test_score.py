@@ -236,3 +236,13 @@ def test_alarm_figures_ignore_findings_outside_the_case_language():
     overall = summary["variants"]["v"]["overall"]
     assert overall["alarms_per_kloc"] == 1.0  # the KLOC of a Python case counts only .py files
     assert overall["unclassified_findings"] == 0
+
+
+def test_score_files_use_lf_line_endings_on_every_system(toy_cases_dir, tmp_path):
+    results = tmp_path / "results"
+    write_bandit_runs(toy_cases_dir, results)
+    assert score_cli(toy_cases_dir, tmp_path, results).exit_code == 0
+    written = [results / "metrics.json", *results.glob("bandit/*/*/findings.json")]
+    assert len(written) == 5
+    for path in written:
+        assert b"\r\n" not in path.read_bytes(), path

@@ -360,3 +360,12 @@ def test_recorded_runs_match_only_the_current_case_and_image(bandit, case):
     assert not matches({**expected, "image_id": "sha256:old"}, expected)  # the image was rebuilt
     unknown_image = {**expected, "image_id": ""}  # no manifest: the image cannot be compared
     assert matches({**expected, "image_id": "sha256:old"}, unknown_image)
+
+
+def test_run_files_use_lf_line_endings_on_every_system(bandit, case, tmp_path):
+    results = tmp_path / "results"
+    run_one(bandit, case, "vulnerable", tmp_path, results, FakeRunner())
+    write_manifest(results, [bandit], {bandit.image: "sha256:abc"})
+    folder = run_dir(results, "bandit", case.id, "vulnerable")
+    for path in (folder / "meta.json", folder / "log.txt", results / "manifest.json"):
+        assert b"\r\n" not in path.read_bytes(), path

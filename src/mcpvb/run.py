@@ -59,7 +59,7 @@ def read_meta(results: Path, variant: str, case_id: str, version: str) -> dict |
 def _write_atomically(path: Path, text: str) -> None:
     """Write via a temporary file and a rename, so an interrupted write never leaves half a file."""
     temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(text, encoding="utf-8")
+    temporary.write_text(text, encoding="utf-8", newline="\n")
     os.replace(temporary, path)
 
 
@@ -150,7 +150,7 @@ def run_one(
             status = Status.ERROR
         else:
             status = Status.OK
-    (out / "log.txt").write_text(log, encoding="utf-8")
+    (out / "log.txt").write_text(log, encoding="utf-8", newline="\n")
     meta = {
         "variant": variant.name,
         "tool": variant.tool,

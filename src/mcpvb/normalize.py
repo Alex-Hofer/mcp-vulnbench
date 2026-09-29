@@ -178,8 +178,9 @@ def load_run(
             raise NormalizeError(f"{raw}: is a symlink; analyzer output must be a regular file")
         findings = parse_sarif(raw, variant, case_id, version, overrides)
     except NormalizeError as exc:
-        (folder / "normalize-error.txt").write_text(str(exc), encoding="utf-8")
+        (folder / "normalize-error.txt").write_text(str(exc), encoding="utf-8", newline="\n")
         return Status.ERROR, []
     serialized = [finding.model_dump(mode="json") for finding in findings]
-    (folder / FINDINGS).write_text(json.dumps(serialized, indent=2), encoding="utf-8")
+    text = json.dumps(serialized, indent=2)
+    (folder / FINDINGS).write_text(text, encoding="utf-8", newline="\n")
     return Status.OK, findings

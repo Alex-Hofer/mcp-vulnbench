@@ -279,7 +279,9 @@ def _score(
         )
     metrics = summarize(outcomes, vulnerable_findings, kloc)
     results_dir.mkdir(parents=True, exist_ok=True)
-    (results_dir / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    (results_dir / "metrics.json").write_text(
+        json.dumps(metrics, indent=2), encoding="utf-8", newline="\n"
+    )
     return metrics
 
 
