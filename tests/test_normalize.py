@@ -95,7 +95,10 @@ def test_results_without_location_are_skipped(tmp_path):
     assert parse(write(tmp_path, doc)) == []
 
 
-@pytest.mark.parametrize("content", ["{", "[]", '{"version": "2.1.0"}'])
+DEEPLY_NESTED = pytest.param("[" * 100_000 + "]" * 100_000, id="deeply-nested")
+
+
+@pytest.mark.parametrize("content", ["{", "[]", '{"version": "2.1.0"}', DEEPLY_NESTED])
 def test_broken_sarif_raises(tmp_path, content):
     path = tmp_path / "raw.sarif"
     path.write_text(content, encoding="utf-8")
@@ -171,6 +174,7 @@ BAD_REGION = [
     {"physicalLocation": {"artifactLocation": {"uri": "a.py"}, "region": {"startLine": "x"}}}
 ]
 MALFORMED_OR_FAILED = {
+    "no-runs": {"version": "2.1.0", "runs": []},  # the tool analyzed nothing
     "run-null": {"version": "2.1.0", "runs": [None]},
     "results-null": {"version": "2.1.0", "runs": [{"results": None}]},
     "results-missing": {"version": "2.1.0", "runs": [{}]},

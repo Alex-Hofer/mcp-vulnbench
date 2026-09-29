@@ -125,10 +125,12 @@ def parse_sarif(
         doc = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
         raise NormalizeError(f"{path}: file not found") from exc
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+    except (json.JSONDecodeError, UnicodeDecodeError, RecursionError) as exc:
         raise NormalizeError(f"{path}: not valid JSON ({exc})") from exc
     if not isinstance(doc, dict) or not isinstance(doc.get("runs"), list):
         raise NormalizeError(f"{path}: not a SARIF log (no 'runs' list)")
+    if not doc["runs"]:
+        raise NormalizeError(f"{path}: the SARIF log contains no analysis run")
     findings: list[Finding] = []
     for sarif_run in doc["runs"]:
         results = _check_run(sarif_run, path)

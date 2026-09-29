@@ -27,6 +27,11 @@ from mcpvb.tools import load_variant
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+EMPTY_SARIF = (
+    '{"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "fake"}}, "results": []}]}'
+)
+
+
 class FakeRunner:
     def __init__(self, exit_code: int | None = 0, write_sarif: bool = True):
         self.exit_code = exit_code
@@ -38,7 +43,7 @@ class FakeRunner:
         self.calls.append(command)
         self.outs.append(out)
         if self.write_sarif:
-            (out / "raw.sarif").write_text('{"version": "2.1.0", "runs": []}', encoding="utf-8")
+            (out / "raw.sarif").write_text(EMPTY_SARIF, encoding="utf-8")
         return ContainerResult(self.exit_code, "fake log", 0.25)
 
 
