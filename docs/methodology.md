@@ -61,6 +61,8 @@ behavior are deliberate:
 - Semgrep runs the Python security rules of the semgrep-rules repository at a pinned commit
   (`python/*/security`; `semgrep-mcp` adds `ai/ai-best-practices/mcp-*`) instead of a registry
   ruleset that changes over time, and with `--timeout 0`, so no rule is cut off on a large file.
+- `codeql-mcp` is `codeql` plus the model pack in `models/codeql/mcp`, which marks every parameter
+  of an MCP tool, resource or prompt handler as a remote source; nothing else differs.
 - In-source suppressions and the analyzed project's tool configuration files are ignored for
   every tool (see [design.md](design.md#tool-configuration-policy)).
 

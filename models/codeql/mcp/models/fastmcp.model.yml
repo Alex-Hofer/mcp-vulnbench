@@ -1,0 +1,12 @@
+# Sources for MCP servers built with the package "fastmcp" (2.x). Decorators work both bare
+# (@app.tool) and called (@app.tool(...)); both forms are modeled.
+extensions:
+  - addsTo:
+      pack: codeql/python-all
+      extensible: sourceModel
+    data:
+      - ["fastmcp", "Member[FastMCP].ReturnValue.Member[tool].Argument[0].Parameter[any]", "remote"]
+      - ["fastmcp", "Member[FastMCP].ReturnValue.Member[tool].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["fastmcp", "Member[FastMCP].ReturnValue.Member[resource].ReturnValue.Argument[0].Parameter[any]", "remote"]
+      - ["fastmcp", "Member[FastMCP].ReturnValue.Member[prompt].Argument[0].Parameter[any]", "remote"]
+      - ["fastmcp", "Member[FastMCP].ReturnValue.Member[prompt].ReturnValue.Argument[0].Parameter[any]", "remote"]

@@ -38,7 +38,7 @@ markers = ["docker: needs a running Docker daemon and built images (deselect wit
 line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
-extend-exclude = ["examples"]
+extend-exclude = ["examples", "tests/fixtures"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]

@@ -50,6 +50,7 @@ ground truth (case.yaml) ─► score ─► metrics.json ─► report ─► r
 | `normalize.py` | One SARIF 2.1.0 parser for all tools; CWE from overrides, rule tags or result properties |
 | `score.py` | Matching against the ground truth and the metrics in [methodology.md](methodology.md) |
 | `report.py` | Markdown tables and a static SVG chart |
+| `models/codeql/` | MCP source models (Models-as-Data) and the image of the `codeql-mcp` variant |
 
 ## Error handling
 

@@ -11,7 +11,8 @@ TOOLS = REPO_ROOT / "tools"
 
 def test_repository_variants_load():
     variants = {variant.name: variant for variant in load_variants(TOOLS)}
-    assert set(variants) == {"semgrep-default", "semgrep-mcp", "codeql", "bandit"}
+    assert set(variants) == {"semgrep-default", "semgrep-mcp", "codeql", "codeql-mcp", "bandit"}
+    assert variants["codeql-mcp"].base_image == variants["codeql"].image
     assert variants["bandit"].cwe_overrides["B307"] == "CWE-95"
     assert variants["semgrep-default"].image == variants["semgrep-mcp"].image
 

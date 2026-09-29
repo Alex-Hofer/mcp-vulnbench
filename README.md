@@ -73,6 +73,7 @@ uv run mcpvb bench           # fetch -> run -> score -> report
 - [Design](docs/design.md)
 - [Methodology](docs/methodology.md) – metric definitions
 - [Adding a case](docs/curation.md)
+- [MCP models for CodeQL](models/codeql/mcp/models)
 
 ## License
 
