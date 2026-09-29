@@ -17,8 +17,14 @@ VERSIONS = ("vulnerable", "fixed")
 META = "meta.json"
 RAW = "raw.sarif"
 TOOL_DIR = "tool"  # the only folder the analyzer container may write to
+# docker run itself failed (125) or the command could not be executed (126) or found (127)
+INFRASTRUCTURE_EXIT_CODES = frozenset({125, 126, 127})
 
 ContainerRunner = Callable[[str, list[str], Path, Path, int], ContainerResult]
+
+
+class InfrastructureError(Exception):
+    """Docker could not run the analyzer at all; nothing is recorded, so the run is repeated."""
 
 
 class Status(StrEnum):
@@ -58,6 +64,8 @@ def run_one(
     done = read_status(results, variant.name, case.id, version)
     if done is not None and not force:
         return done
+    if src is None:
+        return Status.UNAVAILABLE  # not recorded: the next run retries once the sources are back
     out = run_dir(results, variant.name, case.id, version)
     if out.exists():
         shutil.rmtree(out)
@@ -68,14 +76,17 @@ def run_one(
     started = datetime.now(UTC).isoformat(timespec="seconds")
     exit_code: int | None = None
     duration = 0.0
-    if src is None:
-        status, log = Status.UNAVAILABLE, "sources unavailable"
-    elif not variant.supports(case.language):
+    if not variant.supports(case.language):
         status, log = Status.UNSUPPORTED, f"{variant.name} does not support {case.language}"
     else:
         result = runner(
             variant.image, variant.render_command(case.language), src, tool_out, variant.timeout_s
         )
+        if result.exit_code in INFRASTRUCTURE_EXIT_CODES:
+            detail = result.output.strip()[-300:]
+            raise InfrastructureError(
+                f"{variant.name} {case.id} {version}: docker exit code {result.exit_code}: {detail}"
+            )
         exit_code, duration, log = result.exit_code, result.duration_s, result.output
         raw = tool_out / RAW
         if exit_code is None:

@@ -9,7 +9,7 @@ from mcpvb import __version__, docker
 from mcpvb.curate import python_functions
 from mcpvb.fetch import FetchError, check_locations, fetch_case
 from mcpvb.report import write_report
-from mcpvb.run import VERSIONS, run_one, write_manifest
+from mcpvb.run import VERSIONS, InfrastructureError, run_one, write_manifest
 from mcpvb.schema import Case, CaseError, load_cases
 from mcpvb.tools import ToolError, ToolVariant, load_variants
 
@@ -123,7 +123,12 @@ FORCE_OPTION = typer.Option(False, "--force", help="Repeat runs that already fin
 def _run_all(
     cases: list[Case], variants: list[ToolVariant], cache_dir: Path, results_dir: Path, force: bool
 ) -> None:
-    write_manifest(results_dir, variants, {v.image: docker.image_id(v.image) for v in variants})
+    image_ids = {v.image: docker.image_id(v.image) for v in variants}
+    missing = sorted({v.image for v in variants if not image_ids[v.image]})
+    if missing:
+        typer.echo(f"image(s) not built: {', '.join(missing)} - run `mcpvb images` first", err=True)
+        raise typer.Exit(code=2)
+    write_manifest(results_dir, variants, image_ids)
     for current in cases:
         try:
             sources = fetch_case(current, cache_dir)
@@ -133,9 +138,13 @@ def _run_all(
         for variant in variants:
             for version in VERSIONS:
                 src = sources.for_version(version) if sources else None
-                status = run_one(
-                    variant, current, version, src, results_dir, docker.run_container, force
-                )
+                try:
+                    status = run_one(
+                        variant, current, version, src, results_dir, docker.run_container, force
+                    )
+                except InfrastructureError as exc:
+                    typer.echo(f"{exc}\nstopped: fix Docker, then run again", err=True)
+                    raise typer.Exit(code=2) from exc
                 typer.echo(f"{variant.name:<16} {current.id} {version:<10} {status}")
 
 

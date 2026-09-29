@@ -87,3 +87,16 @@ def test_in_source_suppressions_do_not_hide_findings(name, tmp_path):
     assert result.exit_code == 0, result.output
     findings = parse_sarif(out / "raw.sarif", name, "mcpvb-0001", "vulnerable")
     assert any(rule in finding.rule_id and finding.line == 5 for finding in findings)
+
+
+def test_containers_never_pull_images(monkeypatch, tmp_path):
+    seen: dict[str, list[str]] = {}
+
+    def fake_run(args, **kwargs):
+        seen["args"] = args
+        return subprocess.CompletedProcess(args, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(docker.subprocess, "run", fake_run)
+    docker.run_container("mcpvb/bandit:1.9.4", ["bandit"], tmp_path, tmp_path, 10)
+    args = seen["args"]
+    assert "--pull" in args and args[args.index("--pull") + 1] == "never"

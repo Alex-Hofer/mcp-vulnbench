@@ -9,7 +9,7 @@ from mcpvb import docker
 from mcpvb.cli import app
 from mcpvb.docker import ContainerResult
 from mcpvb.fetch import fetch_case
-from mcpvb.run import Status, raw_path, read_status, run_dir, run_one
+from mcpvb.run import InfrastructureError, Status, raw_path, read_status, run_dir, run_one
 from mcpvb.schema import Language, load_cases
 from mcpvb.tools import load_variant
 
@@ -219,3 +219,46 @@ def test_harness_never_writes_through_analyzer_symlinks(bandit, case, tmp_path):
     runner = SymlinkRunner({"log.txt": victim, "meta.json": victim})
     run_one(bandit, case, "vulnerable", tmp_path, tmp_path / "results", runner)
     assert victim.read_text(encoding="utf-8") == "untouched"
+
+
+def fake_docker(monkeypatch, image_id: str, runner: FakeRunner) -> None:
+    monkeypatch.setattr(docker, "preflight", lambda: None)
+    monkeypatch.setattr(docker, "image_id", lambda image: image_id)
+    monkeypatch.setattr(docker, "run_container", runner)
+
+
+def run_cli(toy_cases_dir, tmp_path):
+    args = ["run", "--cases-dir", str(toy_cases_dir), "--tools-dir", str(REPO_ROOT / "tools")]
+    args += ["--cache-dir", str(tmp_path / "cache"), "--results-dir", str(tmp_path / "results")]
+    return CliRunner().invoke(app, [*args, "--variant", "bandit"])
+
+
+def test_run_stops_when_an_image_is_missing(monkeypatch, toy_cases_dir, tmp_path):
+    runner = FakeRunner()
+    fake_docker(monkeypatch, "", runner)
+    result = run_cli(toy_cases_dir, tmp_path)
+    assert result.exit_code == 2
+    assert "mcpvb images" in result.output
+    assert runner.calls == []
+
+
+def test_run_stops_on_docker_infrastructure_errors(monkeypatch, toy_cases_dir, tmp_path):
+    runner = FakeRunner(exit_code=125, write_sarif=False)
+    fake_docker(monkeypatch, "sha256:abc", runner)
+    result = run_cli(toy_cases_dir, tmp_path)
+    assert result.exit_code == 2
+    assert len(runner.calls) == 1  # stops at the first failure
+
+
+@pytest.mark.parametrize("exit_code", [125, 126, 127])
+def test_infrastructure_errors_are_not_recorded(bandit, case, tmp_path, exit_code):
+    results = tmp_path / "results"
+    with pytest.raises(InfrastructureError):
+        run_one(bandit, case, "vulnerable", tmp_path, results, FakeRunner(exit_code, False))
+    assert read_status(results, "bandit", case.id, "vulnerable") is None
+
+
+def test_unavailable_sources_are_not_recorded(bandit, case, tmp_path):
+    results = tmp_path / "results"
+    assert run_one(bandit, case, "fixed", None, results, FakeRunner()) is Status.UNAVAILABLE
+    assert read_status(results, "bandit", case.id, "fixed") is None
