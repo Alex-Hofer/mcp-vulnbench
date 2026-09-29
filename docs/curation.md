@@ -12,6 +12,15 @@ A case is added only if all of these hold:
 
 At most three cases per repository.
 
+## Classification
+Class and CWE follow the sink the tainted value actually reaches: a filesystem path is
+`path-traversal`, an OS command or its arguments `command-injection`, an outgoing request URL
+(including its path) `ssrf`, SQL text `sql-injection`, and code evaluation `code-injection`.
+Advisories sometimes file a bug under a different weakness (for example CWE-22 for `../` in the path
+of an outgoing HTTP request); then the case uses the sink's CWE and `notes` records the advisory's
+CWE and the reason. Matching a tool's finding against the wrong class would otherwise hide a real
+detection.
+
 ## Steps
 1. Read the advisory:
    `gh api /advisories/<GHSA-id> --jq '{summary, cve_id, cwes: [.cwes[].cwe_id], vulnerabilities, references}'`
