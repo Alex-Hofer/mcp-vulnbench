@@ -1,0 +1,23 @@
+id: mcpvb-0026
+title: "Code injection in stata_do of stata-mcp"
+advisories: [CVE-2026-47708, GHSA-4p62-hqp5-g644]
+repo: https://github.com/SepineTam/mcp-for-stata
+license: AGPL-3.0-only
+language: python
+subdir: null
+class: code-injection
+cwe: CWE-94
+mcp_tool: stata_do
+vulnerable:
+  commit: 3553a42677855f99514392eaf3a90d56d27a2037
+  locations:
+    - {file: src/stata_mcp/stata/stata_do/do.py, function: StataDo.execute_dofile, lines: [55, 98]}
+    - {file: src/stata_mcp/stata/stata_do/do.py, function: StataDo._execute_unix_like, lines: [135, 200]}
+fixed:
+  commit: e6f945941ae0c7cf5e74a428e0b3dc82b396382f
+  locations:
+    - {file: src/stata_mcp/stata/stata_do/do.py, function: StataDo.execute_dofile, lines: [58, 102]}
+    - {file: src/stata_mcp/stata/stata_do/do.py, function: StataDo._execute_unix_like, lines: [148, 213]}
+source: ghsa
+split: null
+notes: "The stata_do tool (core and all profiles) passed log_file_name unvalidated to StataDo.execute_dofile; _execute_unix_like interpolates the log name into 'log using \"...\"' lines of the command script it writes to the Stata CLI's stdin, so quotes and newlines inject arbitrary Stata code including shell escapes (advisory CWE-77; the sink is the Stata interpreter, hence code-injection); the fix validates the name in execute_dofile against ^[A-Za-z0-9_.-]{1,128}$ and rejects '.' and '..'. Fix: https://github.com/SepineTam/mcp-for-stata/commit/e6f945941ae0c7cf5e74a428e0b3dc82b396382f (closes #74, released in 1.17.3)"
