@@ -24,7 +24,8 @@ of the five classes, such as an `assert` or a missing request timeout, never cou
   run is `ok`. A finding *persists* if it has the case's class and lies inside a fixed location.
 - **Alarms per KLOC** = classified findings (class among the five in scope) on the vulnerable
   versions of `ok` cases / KLOC of those versions. KLOC counts non-blank lines of the case language
-  without `test`, `tests`, `node_modules`, `dist`, `build`, virtualenvs and `__pycache__`; findings
+  without `test`, `tests`, `node_modules`, `vendor`, `third_party`, `dist`, `build`, virtualenvs
+  and `__pycache__`; findings
   in files of other languages (for example workflow YAML or a web frontend) or inside those folders
   are not counted either, so numerator and denominator cover the same code. A case whose sources
   are unavailable when scoring has no line count and is left out of the alarm figures (with a

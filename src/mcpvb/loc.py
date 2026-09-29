@@ -20,6 +20,8 @@ SKIP_DIRS = {
     "__pycache__",
     "test",
     "tests",
+    "third_party",
+    "vendor",
 }
 
 

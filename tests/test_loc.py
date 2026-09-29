@@ -9,3 +9,11 @@ def test_count_kloc_counts_non_blank_lines_of_the_language(tmp_path):
     (tmp_path / "web.ts").write_text("const a = 1;\n", encoding="utf-8")
     assert count_kloc(tmp_path, Language.PYTHON) == 0.003
     assert count_kloc(tmp_path, Language.TYPESCRIPT) == 0.001
+
+
+def test_count_kloc_leaves_out_vendored_code(tmp_path):
+    (tmp_path / "app.py").write_text("a = 1\n", encoding="utf-8")
+    for folder in ("vendor", "third_party"):
+        (tmp_path / "src" / folder).mkdir(parents=True)
+        (tmp_path / "src" / folder / "lib.py").write_text("x = 1\n" * 50, encoding="utf-8")
+    assert count_kloc(tmp_path, Language.PYTHON) == 0.001
