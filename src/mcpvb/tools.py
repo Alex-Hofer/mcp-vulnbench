@@ -22,6 +22,7 @@ class ToolVariant(BaseModel):
     tool: str
     version: str
     image: str
+    base_image: str | None = None  # image of another variant this one builds on
     dockerfile: str
     languages: list[Language] = Field(min_length=1)
     command: list[str] = Field(min_length=1)

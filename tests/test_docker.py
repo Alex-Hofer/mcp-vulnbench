@@ -2,6 +2,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 from typer.testing import CliRunner
 
 from mcpvb import docker
@@ -115,3 +116,91 @@ def test_containers_drop_privileges(monkeypatch, tmp_path):
     assert options[options.index("--cap-drop") + 1] == "ALL"
     assert options[options.index("--security-opt") + 1] == "no-new-privileges"
     assert int(options[options.index("--pids-limit") + 1]) > 0
+
+
+def write_variant(tools: Path, name: str, image: str, base: str | None = None) -> None:
+    folder = tools / name
+    folder.mkdir(parents=True)
+    data = {
+        "name": name,
+        "tool": "t",
+        "version": "1",
+        "image": image,
+        "dockerfile": f"docker/{name}",
+        "languages": ["python"],
+        "command": ["true"],
+        **({"base_image": base} if base else {}),
+    }
+    (folder / "tool.yaml").write_text(yaml.safe_dump(data), encoding="utf-8")
+
+
+def fake_images(monkeypatch, existing: set[str]) -> list[str]:
+    built: list[str] = []
+    monkeypatch.setattr(docker, "preflight", lambda: None)
+    monkeypatch.setattr(docker, "image_id", lambda image: "sha256:x" if image in existing else "")
+
+    def build(image, context):
+        built.append(image)
+        existing.add(image)
+
+    monkeypatch.setattr(docker, "build", build)
+    return built
+
+
+def test_images_builds_the_base_before_the_derived_image(monkeypatch, tmp_path):
+    write_variant(tmp_path / "tools", "a-derived", "x/derived:1", base="x/base:1")
+    write_variant(tmp_path / "tools", "b-base", "x/base:1")
+    built = fake_images(monkeypatch, set())
+    result = CliRunner().invoke(app, ["images", "--tools-dir", str(tmp_path / "tools")])
+    assert result.exit_code == 0, result.output
+    assert built == ["x/base:1", "x/derived:1"]
+
+
+def test_images_refuses_a_derived_image_without_its_base(monkeypatch, tmp_path):
+    write_variant(tmp_path / "tools", "a-derived", "x/derived:1", base="x/base:1")
+    write_variant(tmp_path / "tools", "b-base", "x/base:1")
+    built = fake_images(monkeypatch, set())
+    args = ["images", "--tools-dir", str(tmp_path / "tools"), "--variant", "a-derived"]
+    result = CliRunner().invoke(app, args)
+    assert result.exit_code == 1
+    assert "x/base:1" in result.output and "not built" in result.output
+    assert built == []  # never builds (and so never pulls) on a missing base
+
+
+@pytest.mark.docker
+def test_run_codeql_passes_extra_options_to_analyze(tmp_path):
+    image = load_variant(REPO_ROOT / "tools" / "codeql" / "tool.yaml").image
+    if not docker.image_id(image):
+        pytest.skip(f"image {image} not built: uv run mcpvb images --variant codeql")
+    stub = '#!/bin/sh\necho "$@" >> /out/calls.txt\n'
+    script = (
+        "mkdir -p /tmp/stub && printf '%s' \"$STUB\" > /tmp/stub/codeql"
+        " && chmod +x /tmp/stub/codeql"
+        " && PATH=/tmp/stub:$PATH run-codeql.sh python /src /out --model-packs=x/y --threads=1"
+    )
+    out = tmp_path / "out"
+    out.mkdir()
+    result = subprocess.run(
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--network",
+            "none",
+            "--env",
+            f"STUB={stub}",
+            "--mount",
+            f"type=bind,source={out.resolve()},target=/out",
+            "--entrypoint",
+            "sh",
+            image,
+            "-c",
+            script,
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    calls = (out / "calls.txt").read_text(encoding="utf-8").splitlines()
+    analyze = [call for call in calls if call.startswith("database analyze")]
+    assert analyze and analyze[0].endswith("--model-packs=x/y --threads=1")

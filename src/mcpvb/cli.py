@@ -161,7 +161,15 @@ def images(tools_dir: Path = TOOLS_DIR, variant: list[str] | None = VARIANT_OPTI
     """Build the Docker images of the tool variants locally (never push them)."""
     variants = _load_variants_or_exit(tools_dir, variant)
     _preflight_or_exit()
-    for image, dockerfile in dict.fromkeys((v.image, v.dockerfile) for v in variants):
+    builds = dict.fromkeys((v.image, v.dockerfile, v.base_image) for v in variants)
+    # An image that builds on another variant's image comes last, and only once that image exists:
+    # a missing base would otherwise be pulled from a registry.
+    for image, dockerfile, base in sorted(builds, key=lambda build: build[2] is not None):
+        if base and not docker.image_id(base):
+            typer.echo(
+                f"{image} builds on {base}, which is not built - build that variant first", err=True
+            )
+            raise typer.Exit(code=1)
         typer.echo(f"building {image} from {dockerfile}")
         try:
             docker.build(image, tools_dir.resolve().parent / dockerfile)
