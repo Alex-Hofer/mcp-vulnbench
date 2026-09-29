@@ -29,6 +29,13 @@ def _pct(value: float | None) -> str:
     return "–" if value is None else f"{value * 100:.0f} %"
 
 
+def _share(entry: dict | None) -> str:
+    """Recall with its counts: per class there are only a handful of cases."""
+    if not entry or entry.get("recall") is None:
+        return "–"
+    return f"{_pct(entry['recall'])} ({entry['detected']}/{entry['cases_ok']})"
+
+
 def _num(value: float | None) -> str:
     return "–" if value is None else f"{value:g}"
 
@@ -77,7 +84,7 @@ def render_report(metrics: dict, manifest: dict | None = None) -> str:
     lines.append("|---|" + "---:|" * len(classes))
     for name in names:
         by_class = variants[name]["by_class"]
-        cells = [_pct(by_class.get(k, {}).get("recall")) for k in classes]
+        cells = [_share(by_class.get(k)) for k in classes]
         lines.append(f"| {name} | " + " | ".join(cells) + " |")
     lines += _status_table(metrics, names) + _details_table(variants, names)
     lines += ["", "## Cases", "", LEGEND, "", "| Case | Class | " + " | ".join(names) + " |"]

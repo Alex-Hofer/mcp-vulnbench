@@ -56,7 +56,7 @@ METRICS = {
 def test_report_contains_overview_and_case_table():
     text = render_report(METRICS)
     assert "| bandit | 2 | 1 | 50 % | 0 % | 55.56 | 0 % |" in text
-    assert "| bandit | 100 % | 0 % |" in text
+    assert "| bandit | 100 % (1/1) | 0 % (0/1) |" in text  # counts: classes are small
     assert "| mcpvb-9001 | command-injection | ◐ |" in text
     assert "| mcpvb-9002 | path-traversal | ✗ |" in text
 
