@@ -8,10 +8,10 @@ Cases: 26
 
 | Variant | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC | Error rate |
 |---|---:|---:|---:|---:|---:|---:|
-| bandit | 25 | 4 | 16 % | 0 % | 1.44 | 4 % |
-| codeql | 26 | 1 | 4 % | 100 % | 0.18 | 0 % |
-| semgrep-default | 26 | 4 | 15 % | 0 % | 1.19 | 0 % |
-| semgrep-mcp | 26 | 5 | 19 % | 0 % | 1.19 | 0 % |
+| bandit | 25 | 4 | 16 % | 0 % (0/4) | 1.44 | 4 % |
+| codeql | 26 | 1 | 4 % | 100 % (1/1) | 0.18 | 0 % |
+| semgrep-default | 26 | 4 | 15 % | 0 % (0/4) | 1.19 | 0 % |
+| semgrep-mcp | 26 | 5 | 19 % | 0 % (0/5) | 1.19 | 0 % |
 
 ## Recall by class
 
