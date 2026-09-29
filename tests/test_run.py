@@ -310,3 +310,14 @@ def test_manifest_keeps_the_other_variants(bandit, tmp_path):
     manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     assert set(manifest["variants"]) == {"bandit", "semgrep-default"}
     assert manifest["variants"]["bandit"]["image_id"] == "sha256:a"
+
+
+def test_corrupt_meta_counts_as_not_finished(bandit, case, tmp_path):
+    results = tmp_path / "results"
+    run_one(bandit, case, "vulnerable", tmp_path, results, FakeRunner())
+    meta = run_dir(results, "bandit", case.id, "vulnerable") / "meta.json"
+    meta.write_text('{"status": "o', encoding="utf-8")  # truncated by an interrupted write
+    assert read_status(results, "bandit", case.id, "vulnerable") is None
+    runner = FakeRunner()
+    assert run_one(bandit, case, "vulnerable", tmp_path, results, runner) is Status.OK
+    assert len(runner.calls) == 1

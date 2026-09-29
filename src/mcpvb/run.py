@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -44,11 +45,22 @@ def raw_path(results: Path, variant: str, case_id: str, version: str) -> Path:
 
 
 def read_meta(results: Path, variant: str, case_id: str, version: str) -> dict | None:
-    """meta.json of a finished run; None if the run never completed."""
+    """meta.json of a finished run; None if the run never completed or its meta.json is broken."""
     meta = run_dir(results, variant, case_id, version) / META
     if not meta.is_file():
         return None
-    return json.loads(meta.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(meta.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    return data if isinstance(data, dict) and data.get("status") in set(Status) else None
+
+
+def _write_atomically(path: Path, text: str) -> None:
+    """Write via a temporary file and a rename, so an interrupted write never leaves half a file."""
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(text, encoding="utf-8")
+    os.replace(temporary, path)
 
 
 def read_status(results: Path, variant: str, case_id: str, version: str) -> Status | None:
@@ -134,7 +146,7 @@ def run_one(
         "started": started,
         "fingerprint": expected,
     }
-    (out / META).write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    _write_atomically(out / META, json.dumps(meta, indent=2))
     return status
 
 
@@ -152,4 +164,4 @@ def write_manifest(results: Path, variants: list[ToolVariant], image_ids: dict[s
             "image": v.image,
             "image_id": image_ids.get(v.image, ""),
         }
-    path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    _write_atomically(path, json.dumps(manifest, indent=2))
