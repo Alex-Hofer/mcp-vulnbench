@@ -1,7 +1,10 @@
 """Shared fixtures: a local git repository built from examples/toy-server and two toy cases."""
 
+import os
 import shutil
+import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -9,6 +12,14 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TOY_SERVER = REPO_ROOT / "examples" / "toy-server"
+
+# Backup clients such as Google Drive for desktop mark every folder they back up read-only, and git
+# marks its object files read-only; Windows refuses to delete read-only entries (WinError 5).
+windows_only = pytest.mark.skipif(sys.platform != "win32", reason="a Windows file attribute")
+
+
+def is_read_only(path: Path) -> bool:
+    return bool(getattr(os.lstat(path), "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_READONLY)
 
 
 def git(cwd: Path, *args: str) -> str:

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 from collections.abc import Callable
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 
 from mcpvb.docker import ContainerResult
+from mcpvb.fsutil import remove_tree
 from mcpvb.schema import Case
 from mcpvb.tools import ToolVariant
 
@@ -123,7 +123,7 @@ def run_one(
         return Status.UNAVAILABLE  # not recorded: the next run retries once the sources are back
     out = run_dir(results, variant.name, case.id, version)
     if out.exists():
-        shutil.rmtree(out)
+        remove_tree(out)
     # The container writes only into out/tool; the harness writes only into out. A compromised
     # analyzer can therefore not redirect harness writes through symlinks.
     tool_out = out / TOOL_DIR

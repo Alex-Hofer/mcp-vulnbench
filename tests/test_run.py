@@ -1,11 +1,13 @@
 import json
 import os
+import stat
 from pathlib import Path
 
 import pytest
 import yaml
 from typer.testing import CliRunner
 
+from conftest import windows_only
 from mcpvb import docker
 from mcpvb.cli import app
 from mcpvb.docker import ContainerResult
@@ -319,6 +321,18 @@ def test_changed_case_commit_repeats_the_run(bandit, case, tmp_path):
 
 def test_rebuilt_image_repeats_the_run(bandit, case, tmp_path):
     assert len(run_twice({}, {"image_id": "sha256:b"}, bandit, case, tmp_path).calls) == 1
+
+
+@windows_only
+def test_rerun_replaces_output_that_a_backup_client_marked_read_only(bandit, case, tmp_path):
+    results = tmp_path / "results"
+    run_one(bandit, case, "vulnerable", tmp_path, results, FakeRunner(), image_id="sha256:a")
+    out = run_dir(results, "bandit", case.id, "vulnerable")
+    for path in (out / "tool", out):
+        os.chmod(path, stat.S_IREAD)  # what backup clients do to the folders they back up
+    runner = FakeRunner()
+    status = run_one(bandit, case, "vulnerable", tmp_path, results, runner, image_id="sha256:b")
+    assert status is Status.OK and len(runner.calls) == 1
 
 
 def test_changed_command_repeats_the_run(bandit, case, tmp_path):

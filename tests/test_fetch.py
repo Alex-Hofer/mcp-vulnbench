@@ -1,5 +1,7 @@
 import io
+import os
 import shutil
+import stat
 import tarfile
 from pathlib import Path
 
@@ -12,7 +14,7 @@ from mcpvb.fetch import FetchError, check_locations, fetch_case
 from mcpvb.schema import Case, load_cases
 
 TOY_SERVER = Path(__file__).resolve().parents[1] / "examples" / "toy-server"
-from conftest import git, toy_case_data  # noqa: E402
+from conftest import git, is_read_only, toy_case_data, windows_only  # noqa: E402
 
 
 def test_toy_ground_truth_points_at_the_functions():
@@ -161,3 +163,27 @@ def test_export_contains_the_exact_committed_files(tmp_path):
     sources = fetch_case(case, tmp_path / "cache")
     assert (sources.vulnerable / "hidden.py").is_file()  # export-ignore must not drop code
     assert b"\r\n" not in (sources.vulnerable / "server.py").read_bytes()  # no autocrlf
+
+
+@windows_only
+def test_interrupted_export_is_replaced_when_marked_read_only(toy_cases_dir, tmp_path):
+    case = load_cases(toy_cases_dir, ["mcpvb-9001"])[0]
+    fetch_case(case, tmp_path / "cache")
+    export = tmp_path / "cache" / "cases" / case.id / "vulnerable"
+    (export / fetch_module.DONE_MARKER).unlink()  # the export was interrupted
+    for path in (export, *export.rglob("*")):
+        if path.is_dir():
+            os.chmod(path, stat.S_IREAD)  # what backup clients do to the folders they back up
+    sources = fetch_case(case, tmp_path / "cache")
+    assert (sources.vulnerable / fetch_module.DONE_MARKER).is_file()
+
+
+@windows_only
+def test_broken_mirror_is_cloned_again_despite_read_only_git_objects(toy_cases_dir, tmp_path):
+    case = load_cases(toy_cases_dir, ["mcpvb-9001"])[0]
+    fetch_case(case, tmp_path / "cache")
+    mirror = next((tmp_path / "cache" / "repos").iterdir())
+    assert any(is_read_only(path) for path in mirror.rglob("*"))  # git's object files
+    (mirror / "HEAD").unlink()  # the clone was interrupted
+    fetch_case(case, tmp_path / "cache")
+    assert (mirror / "HEAD").is_file()

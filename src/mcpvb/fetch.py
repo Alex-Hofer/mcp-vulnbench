@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import io
-import shutil
 import subprocess
 import tarfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 from mcpvb.curate import python_functions
+from mcpvb.fsutil import remove_tree
 from mcpvb.schema import Case, Location
 
 DONE_MARKER = ".mcpvb-fetched"
@@ -51,7 +51,7 @@ def _ensure_mirror(url: str, cache: Path) -> Path:
     mirror = _mirror_dir(cache, url)
     if not (mirror / "HEAD").is_file():
         if mirror.exists():
-            shutil.rmtree(mirror)
+            remove_tree(mirror)
         mirror.parent.mkdir(parents=True, exist_ok=True)
         _git("clone", "--bare", "--quiet", url, str(mirror))
     (mirror / "info").mkdir(exist_ok=True)
@@ -79,7 +79,7 @@ def _export(mirror: Path, commit: str, dest: Path) -> None:
         _git("fetch", "--quiet", "origin", commit, cwd=mirror)
     archive = _git("-c", "core.autocrlf=false", "archive", "--format=tar", commit, cwd=mirror)
     if dest.exists():
-        shutil.rmtree(dest)
+        remove_tree(dest)
     dest.mkdir(parents=True)
     try:
         with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
