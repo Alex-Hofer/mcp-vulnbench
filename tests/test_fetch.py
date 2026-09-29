@@ -148,6 +148,7 @@ def test_export_contains_the_exact_committed_files(tmp_path):
     git(repo, "config", "user.name", "Test")
     git(repo, "config", "user.email", "test@example.invalid")
     git(repo, "config", "core.autocrlf", "false")
+    git(repo, "config", "commit.gpgsign", "false")  # like toy_repo: no signing key in tests
     (repo / ".gitattributes").write_text("hidden.py export-ignore\n*.py text\n", encoding="utf-8")
     (repo / "hidden.py").write_bytes(b"x = 1\n")
     shas = []
