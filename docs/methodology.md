@@ -28,8 +28,12 @@ already has a half inherits it; the other repositories are taken in
 `mcpvb validate` rejects a repository in both halves. The split is committed before any model is
 run on a real case; models are developed on the development half only and measured on the test
 half once they are frozen. The harness enforces the freeze: a variant with `frozen_at: <tag>` in
-its `tool.yaml` runs on test cases only while its files equal that git tag. Any later change to the
-models needs a new tag and is reported as such. The report shows both halves.
+its `tool.yaml` runs on test cases only while the files under its `dockerfile` directory equal that
+git tag; the analyze options in `tool.yaml` are part of every run's fingerprint instead, so a
+changed command is never mistaken for an old run. `MCPVB_UNFROZEN_MODELS=1` overrides the guard
+for development; such a run is marked `unfrozen` in `manifest.json`, and no published number comes
+from one. A later change to the models gets a new tag, and the results name the tag they were
+measured with. The report shows both halves.
 
 ## Metrics (per variant: overall, per class, per language and per half)
 - **Recall** = detected cases / cases whose vulnerable run is `ok`.
@@ -69,7 +73,7 @@ behavior are deliberate:
   - the HTTP headers that `fastmcp` hands to handlers;
   - the bearer token that token verifiers and `get_access_token()` receive.
 
-  Nothing else differs.
+  It is declared for Python only, since the models are Python; nothing else differs.
 - In-source suppressions and the analyzed project's tool configuration files are ignored for
   every tool (see [design.md](design.md#tool-configuration-policy)).
 

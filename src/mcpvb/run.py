@@ -168,8 +168,17 @@ def run_one(
     return status
 
 
-def write_manifest(results: Path, variants: list[ToolVariant], image_ids: dict[str, str]) -> None:
-    """Record the variants of this run; entries of variants run earlier are kept."""
+def write_manifest(
+    results: Path,
+    variants: list[ToolVariant],
+    image_ids: dict[str, str],
+    unfrozen: set[str] = frozenset(),
+) -> None:
+    """Record the variants of this run; entries of variants run earlier are kept.
+
+    A variant in `unfrozen` ran on test cases with the freeze guard overridden; the entry says so,
+    and a later frozen run of the same variant replaces the entry without the flag.
+    """
     results.mkdir(parents=True, exist_ok=True)
     path = results / "manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
@@ -182,4 +191,6 @@ def write_manifest(results: Path, variants: list[ToolVariant], image_ids: dict[s
             "image": v.image,
             "image_id": image_ids.get(v.image, ""),
         }
+        if v.name in unfrozen:
+            entries[v.name]["unfrozen"] = True
     _write_atomically(path, json.dumps(manifest, indent=2))

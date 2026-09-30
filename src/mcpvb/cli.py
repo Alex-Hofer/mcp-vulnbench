@@ -164,14 +164,17 @@ def _frozen_problem(repo_root: Path, tag: str, path: str) -> str | None:
     return None
 
 
-def _frozen_or_exit(variants: list[ToolVariant], cases: list[Case], tools_dir: Path) -> None:
+def _frozen_or_exit(variants: list[ToolVariant], cases: list[Case], tools_dir: Path) -> set[str]:
     """A variant under development runs on the test half only with its files frozen at a tag.
 
     This keeps the published test-half numbers honest: models are developed on the development
     half, frozen as a tag, and only then measured on the test half (see docs/methodology.md).
+    Returns the variants that run anyway because MCPVB_UNFROZEN_MODELS=1 overrides the guard;
+    the manifest records them.
     """
+    unfrozen: set[str] = set()
     if not any(case.split == Split.TEST for case in cases):
-        return
+        return unfrozen
     for current in (v for v in variants if v.frozen_at):
         problem = _frozen_problem(tools_dir.resolve().parent, current.frozen_at, current.dockerfile)
         if problem is None:
@@ -182,9 +185,11 @@ def _frozen_or_exit(variants: list[ToolVariant], cases: list[Case], tools_dir: P
         )
         if os.environ.get("MCPVB_UNFROZEN_MODELS") == "1":
             typer.echo(f"warning: {message} - running anyway, the models are not frozen", err=True)
+            unfrozen.add(current.name)
             continue
         typer.echo(f"{message} (set MCPVB_UNFROZEN_MODELS=1 to run anyway)", err=True)
         raise typer.Exit(code=1)
+    return unfrozen
 
 
 def _preflight_or_exit() -> None:
@@ -248,7 +253,12 @@ def _fetch_checked(cases: list[Case], cache_dir: Path) -> dict[str, CaseSources 
 
 
 def _run_all(
-    cases: list[Case], variants: list[ToolVariant], cache_dir: Path, results_dir: Path, force: bool
+    cases: list[Case],
+    variants: list[ToolVariant],
+    cache_dir: Path,
+    results_dir: Path,
+    force: bool,
+    unfrozen: set[str] = frozenset(),
 ) -> None:
     image_ids = {v.image: docker.image_id(v.image) for v in variants}
     missing = sorted({v.image for v in variants if not image_ids[v.image]})
@@ -256,7 +266,7 @@ def _run_all(
         typer.echo(f"image(s) not built: {', '.join(missing)} - run `mcpvb images` first", err=True)
         raise typer.Exit(code=2)
     all_sources = _fetch_checked(cases, cache_dir)
-    write_manifest(results_dir, variants, image_ids)
+    write_manifest(results_dir, variants, image_ids, unfrozen)
     for current in cases:
         sources = all_sources[current.id]
         for variant in variants:
@@ -293,9 +303,9 @@ def run(
     """Run the tool variants on both versions of every case."""
     cases = _load_cases_or_exit(cases_dir, case, split)
     variants = _load_variants_or_exit(tools_dir, variant)
-    _frozen_or_exit(variants, cases, tools_dir)
+    unfrozen = _frozen_or_exit(variants, cases, tools_dir)
     _preflight_or_exit()
-    _run_all(cases, variants, cache_dir, results_dir, force)
+    _run_all(cases, variants, cache_dir, results_dir, force, unfrozen)
 
 
 @app.command()
@@ -396,8 +406,8 @@ def bench(
     """validate -> fetch -> run -> score -> report in one go."""
     cases = _load_cases_or_exit(cases_dir, case, split)
     variants = _load_variants_or_exit(tools_dir, variant)
-    _frozen_or_exit(variants, cases, tools_dir)
+    unfrozen = _frozen_or_exit(variants, cases, tools_dir)
     _preflight_or_exit()
-    _run_all(cases, variants, cache_dir, results_dir, force)
+    _run_all(cases, variants, cache_dir, results_dir, force, unfrozen)
     _score(cases, variants, cache_dir, results_dir)
     typer.echo(f"report: {write_report(results_dir)}")

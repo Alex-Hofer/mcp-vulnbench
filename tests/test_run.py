@@ -7,7 +7,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from conftest import windows_only
+from conftest import git, windows_only
 from mcpvb import docker
 from mcpvb.cli import app
 from mcpvb.docker import ContainerResult
@@ -471,3 +471,15 @@ def test_unfrozen_models_can_run_on_the_test_half_on_request(monkeypatch, toy_ca
     result = run_frozen(root, toy_cases_dir, tmp_path, "test")
     assert result.exit_code == 0, result.output
     assert "not frozen" in result.output and runner.calls
+    # the override leaves a trace: published results can be checked for it
+    manifest = json.loads((tmp_path / "results" / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["variants"]["frozen"]["unfrozen"] is True
+
+
+def test_a_frozen_run_carries_no_unfrozen_flag(monkeypatch, toy_cases_dir, tmp_path):
+    root = frozen_repo(tmp_path)
+    git(root, "tag", "-a", "models-v1", "-m", "frozen")
+    fake_docker(monkeypatch, "sha256:abc", FakeRunner())
+    assert run_frozen(root, toy_cases_dir, tmp_path, "test").exit_code == 0
+    manifest = json.loads((tmp_path / "results" / "manifest.json").read_text(encoding="utf-8"))
+    assert "unfrozen" not in manifest["variants"]["frozen"]
