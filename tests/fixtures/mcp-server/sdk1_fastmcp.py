@@ -67,7 +67,8 @@ def logged(func):
 @server.tool()
 @logged
 def wrapped(command: str) -> str:
-    # the model marks the wrapper's *args/**kwargs; CodeQL does not follow func(*args, **kwargs)
+    # no source at all: functools.wraps hides the handler from the API graph, and MaD's
+    # Parameter[any] does not cover *args/**kwargs (Flask/FastAPI QL models use the decorator list)
     return subprocess.check_output(command, shell=True, text=True)  # known-miss: py/command-line-injection
 
 
