@@ -94,13 +94,15 @@ def render_report(metrics: dict, manifest: dict | None = None) -> str:
         lines.append(f"| {name} | " + " | ".join(cells) + " |")
     lines += _split_table(variants, names)
     lines += _status_table(metrics, names) + _details_table(variants, names)
-    lines += ["", "## Cases", "", LEGEND, "", "| Case | Class | " + " | ".join(names) + " |"]
-    lines.append("|---|---|" + "---|" * len(names))
+    lines += ["", "## Cases", "", LEGEND, ""]
+    lines.append("| Case | Class | Half | " + " | ".join(names) + " |")
+    lines.append("|---|---|---|" + "---|" * len(names))
     by_key = {(o["variant"], o["case_id"]): o for o in metrics["cases"]}
     for case_id in case_ids:
-        vuln_class = next(o["vuln_class"] for o in metrics["cases"] if o["case_id"] == case_id)
+        first = next(o for o in metrics["cases"] if o["case_id"] == case_id)
+        half = first.get("split") or "–"
         cells = [_cell(by_key[(n, case_id)]) if (n, case_id) in by_key else "–" for n in names]
-        lines.append(f"| {case_id} | {vuln_class} | " + " | ".join(cells) + " |")
+        lines.append(f"| {case_id} | {first['vuln_class']} | {half} | " + " | ".join(cells) + " |")
     lines += [
         "",
         "![Recall per variant](recall.svg)",

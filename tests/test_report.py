@@ -20,12 +20,13 @@ OVERALL = {
 }
 
 
-def outcome(case_id, vuln_class, detected, persisting):
+def outcome(case_id, vuln_class, detected, persisting, split=None):
     return {
         "variant": "bandit",
         "case_id": case_id,
         "language": "python",
         "vuln_class": vuln_class,
+        "split": split,
         "status_vulnerable": "ok",
         "status_fixed": "ok",
         "detected": detected,
@@ -48,7 +49,7 @@ METRICS = {
         }
     },
     "cases": [
-        outcome("mcpvb-9001", "command-injection", True, True),
+        outcome("mcpvb-9001", "command-injection", True, True, split="test"),
         outcome("mcpvb-9002", "path-traversal", False, None),
     ],
 }
@@ -58,8 +59,8 @@ def test_report_contains_overview_and_case_table():
     text = render_report(METRICS)
     assert "| bandit | 2 | 1 | 50 % | 0 % (0/1) | 55.56 | 0 % |" in text
     assert "| bandit | 100 % (1/1) | 0 % (0/1) |" in text  # counts: classes are small
-    assert "| mcpvb-9001 | command-injection | ◐ |" in text
-    assert "| mcpvb-9002 | path-traversal | ✗ |" in text
+    assert "| mcpvb-9001 | command-injection | test | ◐ |" in text  # the half is named per case
+    assert "| mcpvb-9002 | path-traversal | – | ✗ |" in text  # no half assigned
 
 
 def test_report_and_chart_are_deterministic(tmp_path):
@@ -103,7 +104,7 @@ def test_report_shows_lenient_recall_and_alarm_details():
 def test_case_table_names_the_status_of_unassessed_runs():
     metrics = copy.deepcopy(METRICS)
     metrics["cases"][1].update(status_vulnerable="timeout", detected=None)
-    assert "| mcpvb-9002 | path-traversal | t/o |" in render_report(metrics)
+    assert "| mcpvb-9002 | path-traversal | – | t/o |" in render_report(metrics)
 
 
 def test_rendering_the_chart_keeps_global_matplotlib_settings(tmp_path):
