@@ -1,12 +1,23 @@
+import re
+import tomllib
+from pathlib import Path
+
 from typer.testing import CliRunner
 
 from mcpvb.cli import app
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
-def test_version_flag_prints_version():
+
+def test_version_is_the_same_everywhere():
+    # pyproject.toml, `mcpvb --version` and the README status line must not drift apart
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    version = pyproject["project"]["version"]
     result = CliRunner().invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert "mcpvb 0.1.0" in result.output
+    assert result.output.strip() == f"mcpvb {version}"
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    assert re.search(r"^> Status: v(\S+)", readme, re.MULTILINE).group(1) == version
 
 
 def test_help_describes_the_program():

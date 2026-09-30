@@ -1,6 +1,6 @@
 [project]
 name = "mcp-vulnbench"
-version = "0.1.0"
+version = "0.2.0"
 description = "Benchmark of real vulnerabilities in MCP servers and a harness that evaluates static analyzers on them"
 readme = "README.md"
 license = "MIT"
