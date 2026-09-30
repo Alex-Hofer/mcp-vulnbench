@@ -43,7 +43,7 @@ def _share(entry: dict | None) -> str:
 
 
 def _num(value: float | None) -> str:
-    return "–" if value is None else f"{value:g}"
+    return "–" if value is None else f"{value:.2f}"
 
 
 def _cell(outcome: dict) -> str:

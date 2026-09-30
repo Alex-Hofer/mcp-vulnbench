@@ -3,7 +3,7 @@ import json
 
 import matplotlib
 
-from mcpvb.report import chart_figure, render_chart, render_report, write_report
+from mcpvb.report import _num, chart_figure, render_chart, render_report, write_report
 
 OVERALL = {
     "cases_ok": 2,
@@ -97,7 +97,7 @@ def test_report_counts_run_statuses():
 
 def test_report_shows_lenient_recall_and_alarm_details():
     text = render_report(METRICS)
-    assert "| bandit | 50 % | 50 % | 50 % | 1 | 0 |" in text
+    assert "| bandit | 50 % | 50 % | 50 % | 1.00 | 0 |" in text
 
 
 def test_case_table_names_the_status_of_unassessed_runs():
@@ -133,3 +133,8 @@ def test_report_shows_both_halves():
 
 def test_report_without_halves_has_no_split_section():
     assert "## By split" not in render_report(METRICS)
+
+
+def test_rates_keep_two_decimals():
+    # 2.0 next to 0.65 in one column must read 2.00, not 2
+    assert (_num(2.0), _num(0.65), _num(0.0), _num(None)) == ("2.00", "0.65", "0.00", "–")
