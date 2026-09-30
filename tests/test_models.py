@@ -12,7 +12,7 @@ from mcpvb.tools import load_variant
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACK = REPO_ROOT / "models" / "codeql" / "mcp"
 FIXTURE = REPO_ROOT / "tests" / "fixtures" / "mcp-server"
-TOKEN = r"(Member\[\w+\]|ReturnValue|Instance|Argument\[[\w:,]+\]|Parameter\[[\w:,]+\])"
+TOKEN = r"(Member\[\w+\]|ReturnValue|Instance|Subclass|Argument\[[\w:,]+\]|Parameter\[[\w:,]+\])"
 TYPE_MARK = re.compile(r"# type: (\S+) (\S+) (\S+)")
 MODEL_MARK = re.compile(r"# model: (\S+) (\S+)")
 EXPECT_MARK = re.compile(r"# expect: (\S+)")

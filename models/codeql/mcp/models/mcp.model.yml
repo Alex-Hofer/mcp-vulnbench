@@ -20,6 +20,7 @@ extensions:
       - ["mcp.server.lowlevel.Server!", "mcp", "Member[server].Member[lowlevel].Member[Server]"]
       - ["mcp.server.lowlevel.Server!", "mcp", "Member[server].Member[lowlevel].Member[server].Member[Server]"]
       - ["mcp.server.lowlevel.Server", "mcp.server.lowlevel.Server!", "Instance"]
+      - ["mcp.server.auth.provider.TokenVerifier!", "mcp", "Member[server].Member[auth].Member[provider].Member[TokenVerifier]"]
 
   - addsTo:
       pack: codeql/python-all
@@ -42,3 +43,6 @@ extensions:
       - ["mcp.server.lowlevel.Server!", "Argument[on_call_tool:].Parameter[1].Member[arguments]", "remote"]
       - ["mcp.server.lowlevel.Server!", "Argument[on_read_resource:].Parameter[1].Member[uri]", "remote"]
       - ["mcp.server.lowlevel.Server!", "Argument[on_get_prompt:].Parameter[1].Member[arguments]", "remote"]
+      # Bearer tokens of the Authorization header: token verifiers and the access-token helper
+      - ["mcp.server.auth.provider.TokenVerifier!", "Subclass.Member[verify_token].Parameter[0,token:]", "remote"]
+      - ["mcp", "Member[server].Member[auth].Member[middleware].Member[auth_context].Member[get_access_token].ReturnValue.Member[token]", "remote"]
