@@ -45,7 +45,8 @@ ground truth (case.yaml) ─► score ─► metrics.json ─► report ─► r
 | `schema.py` | Case model, loading, cross-case checks (OSI license, at most 3 cases per repository) |
 | `split.py` | Development and test half: whole repositories per half, balanced by language and class ([methodology](methodology.md#development-and-test-split)) |
 | `fetch.py` | Export both commits of a case into `.cache/` via `git archive`; check ground-truth locations |
-| `tools.py` | Tool variant: pinned image, command template, supported languages, CWE overrides |
+| `fsutil.py` | Delete the harness's own folders, also where Windows marks entries read-only |
+| `tools.py` | Tool variant: pinned image, command template, supported languages, CWE overrides, `base_image`, `frozen_at` |
 | `docker.py` | Thin wrapper around the docker CLI: preflight, build, run with limits |
 | `run.py` | One container per (variant, case, version); statuses; `meta.json` written last; manifest |
 | `normalize.py` | One SARIF 2.1.0 parser for all tools; CWE from overrides, rule tags or result properties |
@@ -91,7 +92,8 @@ committed `.semgrepignore` could switch Semgrep off for the whole repository. So
 ## Reproducibility
 
 Tool versions and the semgrep-rules commit are pinned in `docker/*/Dockerfile` and
-`tools/*/tool.yaml`. Base images are pinned by digest, the CodeQL bundle and the semgrep-rules
+`tools/*/tool.yaml`. Base images are pinned by digest (a derived image such as `codeql-mcp` builds
+on the locally built image of its base variant, never on a registry), the CodeQL bundle and the semgrep-rules
 archive are verified against SHA-256 checksums while the images are built, and Bandit's
 dependencies are pinned in `docker/bandit/constraints.txt`. Every run writes the local image IDs to
 `manifest.json`, and `.python-version` keeps local development on the Python version CI uses. Two

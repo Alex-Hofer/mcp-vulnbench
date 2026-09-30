@@ -16,7 +16,8 @@ is measured on finding the bug *and* on recognizing the fix.
 traversal, 5 command injection, 5 SSRF, 3 SQL injection, 2 code injection), five analyzer variants
 without any tuning (the [methodology](docs/methodology.md#tool-configuration) lists the few
 deliberate settings). `codeql-mcp` is CodeQL plus the
-[MCP source models](models/codeql/mcp/models) of this repository; nothing else differs.
+[MCP source models](models/codeql/mcp/models) of this repository, run on Python only; nothing else
+differs.
 
 | Variant | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC | Error rate |
 |---|---:|---:|---:|---:|---:|---:|
@@ -46,10 +47,11 @@ explains the split. The test half is the fair comparison:
   `codeql` found is lost.
 - The cost is four times as many alarms per KLOC (0.27 to 1.09 on the test half). Over all 28
   cases that is still fewer than Bandit or Semgrep report (0.82 against 1.44 and 1.22), on the test
-  half more (1.09 against 0.65 and 0.49). The median server gets 4.5 alarms instead of none. Half
-  of the 763 new alarms are `py/path-injection`, concentrated in three servers that hand file
-  paths around (mcpvb-0018, 0020, 0027); a third are `py/log-injection`, because tool arguments
-  are logged everywhere.
+  half more (1.09 against 0.65 and 0.49); the median test-half server gets 4.5 alarms instead of
+  none. Of the 383 additional findings on the vulnerable versions, 199 are `py/path-injection`,
+  concentrated in three servers that hand file paths around (mcpvb-0020, 0027, 0018 with 51, 47
+  and 45), and 144 are `py/log-injection`, which the benchmark counts separately because log
+  injection is not one of its five classes.
 - What still escapes `codeql-mcp` on the test half is mostly sinks CodeQL does not model: the git
   server of the official `servers` repository runs GitPython (`repo.git.diff`, `Repo.init`,
   `index.add`), the Stata server feeds Stata through a `pexpect` child, the scrapling server

@@ -1,5 +1,5 @@
 # CodeQL with the security-extended suite plus the MCP models in models/codeql/mcp.
-# Identical to the codeql variant except for the two model-pack options.
+# Like the codeql variant, plus the two model-pack options; Python only, since the models are Python.
 name: codeql-mcp
 tool: codeql
 version: "2.27.1"
