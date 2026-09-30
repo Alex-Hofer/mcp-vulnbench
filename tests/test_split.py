@@ -125,6 +125,12 @@ def test_validate_reports_a_repository_in_both_halves(toy_cases_dir):
     assert "both halves" in result.output
 
 
+def test_split_command_reports_a_repository_in_both_halves(toy_cases_dir):
+    set_splits(toy_cases_dir, "dev", "test")
+    result = CliRunner().invoke(app, ["split", "--cases-dir", str(toy_cases_dir)])
+    assert result.exit_code == 1 and "both halves" in result.output  # one line, no traceback
+
+
 def test_split_command_assigns_every_case_once(toy_cases_dir):
     set_splits(toy_cases_dir, None, None)
     first = CliRunner().invoke(app, ["split", "--cases-dir", str(toy_cases_dir)])

@@ -56,7 +56,7 @@ def assign_splits(cases: list[Case]) -> dict[str, Split]:
     mixed = repositories_in_both_halves(cases)
     if mixed:
         raise CaseError(
-            f"cases of {', '.join(mixed)} are in both halves; a repository has one half"
+            f"cases of {', '.join(mixed)} are in both halves; a repository belongs to one half"
         )
     groups = _by_repository(cases)
     counts = Counter((c.language, c.vuln_class, c.split) for c in cases if c.split is not None)

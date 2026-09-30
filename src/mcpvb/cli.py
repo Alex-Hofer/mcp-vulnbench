@@ -98,8 +98,8 @@ def validate(cases_dir: Path = CASES_DIR, tools_dir: Path = TOOLS_DIR) -> None:
 def split_cases(cases_dir: Path = CASES_DIR) -> None:
     """Assign every case without a split to the dev or the test half (stratified, seeded)."""
     cases = _load_cases_or_exit(cases_dir)
-    assigned = assign_splits(cases)
     try:
+        assigned = assign_splits(cases)
         for case_id, half in assigned.items():
             write_split(cases_dir / case_id / "case.yaml", half)
     except CaseError as exc:
