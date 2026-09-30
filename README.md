@@ -7,55 +7,82 @@ case in Docker and scores them.
 Each case pins the vulnerable and the fixed commit, the CWE and the exact code location, so a tool
 is measured on finding the bug *and* on recognizing the fix.
 
-> Status: v0.1.0 – milestone 1 (26 Python cases; Semgrep, CodeQL, Bandit). Next: TypeScript
-> cases and CodeQL models for MCP tool handlers.
+> Status: v0.2.0 – milestone 2a (28 Python cases; Semgrep, CodeQL, Bandit, and CodeQL with the
+> MCP models of this repository). Next: TypeScript cases.
 
-## Results (v0.1.0)
+## Results (v0.2.0)
 
-26 publicly disclosed vulnerabilities in 21 open-source Python MCP server projects (12 path
-traversal, 5 SSRF, 4 command injection, 3 SQL injection, 2 code injection), four analyzer variants
+28 publicly disclosed vulnerabilities in 23 open-source Python MCP server projects (13 path
+traversal, 5 command injection, 5 SSRF, 3 SQL injection, 2 code injection), five analyzer variants
 without any tuning (the [methodology](docs/methodology.md#tool-configuration) lists the few
-deliberate settings):
+deliberate settings). `codeql-mcp` is CodeQL plus the
+[MCP source models](models/codeql/mcp/models) of this repository; nothing else differs.
 
 | Variant | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC | Error rate |
 |---|---:|---:|---:|---:|---:|---:|
-| bandit | 25 | 4 | 16 % | 0 % (0/4) | 1.44 | 4 % |
-| codeql | 26 | 1 | 4 % | 100 % (1/1) | 0.18 | 0 % |
-| semgrep-default | 26 | 4 | 15 % | 0 % (0/4) | 1.19 | 0 % |
-| semgrep-mcp | 26 | 5 | 19 % | 0 % (0/5) | 1.19 | 0 % |
+| bandit | 27 | 5 | 19 % | 20 % (1/5) | 1.44 | 4 % |
+| codeql | 28 | 1 | 4 % | 100 % (1/1) | 0.17 | 0 % |
+| codeql-mcp | 28 | 13 | 46 % | 15 % (2/13) | 0.82 | 0 % |
+| semgrep-default | 28 | 5 | 18 % | 20 % (1/5) | 1.22 | 0 % |
+| semgrep-mcp | 28 | 6 | 21 % | 17 % (1/6) | 1.22 | 0 % |
 
-![Recall per variant](docs/results-v0.1.0.svg)
+![Recall per variant](docs/results-v0.2.0.svg)
 
-- No variant finds any of the 12 path-traversal or the 2 code-injection cases; only the MCP rules
-  find one of the 5 SSRF cases.
-- What the tools do find is the textbook pattern: MCP input that ends up in a `subprocess` call
-  or in an SQL string built with an f-string. Bandit and Semgrep then keep reporting the fixed code
-  too: a specific warning such as `shell=True` disappears with the fix, but their generic rules
-  fire on the call itself, whatever the fix changed around it.
-- CodeQL's taint queries start from known sources such as the request objects of web frameworks.
-  One query also treats the parameters of a package's public functions as input, which is how
-  CodeQL finds mcpvb-0014 and recognizes its fix. Nothing tells CodeQL that an MCP tool argument is
-  untrusted, so it reports nothing on the vulnerable paths of the other 25 servers.
-- The Semgrep MCP rules (`ai/ai-best-practices/mcp-*`) treat the parameters of `@<server>.tool()`
-  functions as sources, but Semgrep CE follows taint only within one function: as soon as a tool
-  hands its argument to a helper, as most real servers do, the rules see nothing. The SSRF rule
-  also knows only `requests` and `urllib` as sinks, not `httpx`, and there is no MCP rule for
-  file paths.
+The models were written on a development half of the cases and frozen (tag `models-v1`) before
+the other half was measured; the [methodology](docs/methodology.md#development-and-test-split)
+explains the split. The test half is the fair comparison:
 
-Limitations: 26 cases is a small sample; one case moves a variant's recall by about four
-percentage points, code injection is represented by two cases from one repository, and two of the
-three SQL-injection cases (mcpvb-0011, mcpvb-0012) share a commit pair and their sink function,
-so one finding there counts for both. Only Python servers and only static analyzers are measured;
-MCP scanners that inspect the tool descriptions of running servers look for a different class of
-problems and are not part of the benchmark. There is no precision column; the
+| Variant | Half | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC |
+|---|---|---:|---:|---:|---:|---:|
+| codeql | dev | 12 | 1 | 8 % | 100 % (1/1) | 0.07 |
+| codeql-mcp | dev | 12 | 4 | 33 % | 25 % (1/4) | 0.54 |
+| codeql | test | 16 | 0 | 0 % | – | 0.27 |
+| codeql-mcp | test | 16 | 9 | 56 % | 11 % (1/9) | 1.09 |
+
+- On the test half, the models take CodeQL from 0 of 16 cases to 9 of 16: 5 of 7 path traversals,
+  2 of 3 command injections, 1 of 3 SSRF cases and the SQL injection, but neither code injection.
+  In the spot checks (mcpvb-0002, 0009, 0025) the finding is on the sink line: the `shell=True`
+  call, the `client.get(url)` with the tool's path appended, the f-string query. Nothing that
+  `codeql` found is lost.
+- The cost is four times as many alarms per KLOC (0.27 to 1.09 on the test half). Over all 28
+  cases that is still fewer than Bandit or Semgrep report (0.82 against 1.44 and 1.22), on the test
+  half more (1.09 against 0.65 and 0.49). The median server gets 4.5 alarms instead of none. Half
+  of the 763 new alarms are `py/path-injection`, concentrated in three servers that hand file
+  paths around (mcpvb-0018, 0020, 0027); a third are `py/log-injection`, because tool arguments
+  are logged everywhere.
+- What still escapes `codeql-mcp` on the test half is mostly sinks CodeQL does not model: the git
+  server of the official `servers` repository runs GitPython (`repo.git.diff`, `Repo.init`,
+  `index.add`), the Stata server feeds Stata through a `pexpect` child, the scrapling server
+  fetches through `scrapling`. In fastmcp's own OpenAPI tools the taint reaches `OpenAPITool.run`
+  and dies at the request director; the `httpx.Request` it builds is not a modeled sink either.
+- The development half shows the limits of the model form itself. Tools registered through
+  registries, dicts or dataclass fields never become sources, and neither do tools behind a
+  project decorator (auth or error handling), because CodeQL does not follow the handler through
+  `functools.wraps` or `func(*args, **kwargs)`. Where the source is placed, taint still dies in
+  connection managers, `request.state` and config objects whose types CodeQL cannot infer.
+- `codeql-mcp` recognizes the fix in 2 of its 13 detections. In the cases checked (mcpvb-0005,
+  0020, 0023) the fix validates with a project helper (a path-containment check, a hostname
+  comparison after `urlparse`) that CodeQL does not treat as a barrier, so the alert stays on the
+  same sink in the fixed version.
+- Three stable CodeQL queries (`py/xxe`, `py/xml-bomb`, `py/nosql-injection`) take only
+  `RemoteFlowSource` and never see sources defined as data extensions; a small reproducer is part
+  of the upstream report.
+
+Limitations: 28 cases is a small sample, and the test half has 16, so one case moves a variant's
+recall there by about six percentage points; code injection is represented by two cases from one
+repository, and two of the three SQL-injection cases (mcpvb-0011, mcpvb-0012) share a commit pair
+and their sink function, so one finding there counts for both. Only Python servers and only static
+analyzers are measured; MCP scanners that inspect the tool descriptions of running servers look for
+a different class of problems and are not part of the benchmark. There is no precision column; the
 [methodology](docs/methodology.md#why-there-is-no-precision) explains why and which figures
-approximate false alarms instead. In two cases the fixed version
-still contains a related weakness (mcpvb-0006: a second path traversal that was fixed later;
-mcpvb-0022: private hosts stay reachable by design), so a persisting finding there is not
-necessarily a missed fix. Bandit's two runs on fastmcp end in an error because its SARIF formatter
-crashes on that repository ([PyCQA/bandit#1311](https://github.com/PyCQA/bandit/issues/1311)).
+approximate false alarms instead. In two cases the fixed version still contains a related weakness
+(mcpvb-0006: a second path traversal that was fixed later; mcpvb-0022: private hosts stay reachable
+by design), so a persisting finding there is not necessarily a missed fix. Bandit's two runs on
+fastmcp end in an error because its SARIF formatter crashes on that repository
+([PyCQA/bandit#1311](https://github.com/PyCQA/bandit/issues/1311)).
 
-Full report with the per-case table: [docs/results-v0.1.0.md](docs/results-v0.1.0.md).
+Full report with the per-case table: [docs/results-v0.2.0.md](docs/results-v0.2.0.md). The
+v0.1.0 results (26 cases, four variants) are kept in [docs/results-v0.1.0.md](docs/results-v0.1.0.md).
 
 ## Quick start
 

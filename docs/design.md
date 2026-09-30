@@ -43,6 +43,7 @@ ground truth (case.yaml) ─► score ─► metrics.json ─► report ─► r
 | Module | Responsibility |
 |---|---|
 | `schema.py` | Case model, loading, cross-case checks (OSI license, at most 3 cases per repository) |
+| `split.py` | Development and test half: whole repositories per half, balanced by language and class ([methodology](methodology.md#development-and-test-split)) |
 | `fetch.py` | Export both commits of a case into `.cache/` via `git archive`; check ground-truth locations |
 | `tools.py` | Tool variant: pinned image, command template, supported languages, CWE overrides |
 | `docker.py` | Thin wrapper around the docker CLI: preflight, build, run with limits |
