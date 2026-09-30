@@ -26,7 +26,7 @@ Cases: 28
 
 ## By split
 
-| Variant | Split | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC |
+| Variant | Half | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC |
 |---|---|---:|---:|---:|---:|---:|
 | bandit | dev | 12 | 2 | 17 % | 0 % (0/2) | 2.00 |
 | bandit | test | 15 | 3 | 20 % | 33 % (1/3) | 0.65 |

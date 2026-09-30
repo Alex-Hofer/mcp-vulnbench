@@ -128,6 +128,7 @@ def test_report_shows_both_halves():
     }
     text = render_report(metrics)
     assert "## By split" in text
+    assert "| Variant | Half | Cases (ok) |" in text  # the same word as in the cases table
     assert "| bandit | dev | 2 | 1 | 50 % | 0 % (0/1) | 55.56 |" in text
     assert "| bandit | test | 2 | 1 | – |" in text
 

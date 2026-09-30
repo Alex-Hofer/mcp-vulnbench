@@ -120,7 +120,7 @@ def _split_table(variants: dict, names: list[str]) -> list[str]:
         return []
     lines = ["", "## By split", ""]
     lines.append(
-        "| Variant | Split | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC |"
+        "| Variant | Half | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC |"
     )
     lines.append("|---|---|---:|---:|---:|---:|---:|")
     for name in names:
