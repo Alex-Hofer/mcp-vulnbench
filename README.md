@@ -68,7 +68,8 @@ explains the split. The test half is the fair comparison:
   same sink in the fixed version.
 - Three stable CodeQL queries (`py/xxe`, `py/xml-bomb`, `py/nosql-injection`) take only
   `RemoteFlowSource` and never see sources defined as data extensions; a small reproducer is part
-  of the upstream report.
+  of the upstream report, [github/codeql#22702](https://github.com/github/codeql/issues/22702),
+  which also proposes the models.
 
 Limitations: 28 cases is a small sample, and the test half has 16, so one case moves a variant's
 recall there by about six percentage points; code injection is represented by two cases from one
