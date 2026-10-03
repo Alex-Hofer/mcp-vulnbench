@@ -63,6 +63,23 @@ def test_report_contains_overview_and_case_table():
     assert "| mcpvb-9002 | path-traversal | – | ✗ |" in text  # no half assigned
 
 
+def test_report_marks_cases_with_a_caveat():
+    metrics = copy.deepcopy(METRICS)
+    metrics["cases"][0]["caveat"] = True
+    overall = metrics["variants"]["bandit"]["overall"]
+    overall.update(fix_recognized_without_caveat=0, fix_assessed_without_caveat=0)
+    text = render_report(metrics)
+    assert "| mcpvb-9001 † | command-injection | test | ◐ |" in text
+    assert "† 1 of 2 cases" in text and "curation.md" in text
+    assert "Fix recognized (no caveat)" in text
+    assert "| bandit | 50 % | 50 % | 50 % | – | 1.00 | 0 |" in text  # nothing left to assess
+
+
+def test_report_without_caveats_has_no_mark():
+    text = render_report(METRICS)  # metrics of an older version: no caveat fields
+    assert "†" not in text and "| mcpvb-9001 | command-injection | test | ◐ |" in text
+
+
 def test_report_and_chart_are_deterministic(tmp_path):
     (tmp_path / "metrics.json").write_text(json.dumps(METRICS), encoding="utf-8")
     first = write_report(tmp_path).read_text(encoding="utf-8")

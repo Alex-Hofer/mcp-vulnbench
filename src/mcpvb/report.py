@@ -15,6 +15,11 @@ from matplotlib.figure import Figure  # noqa: E402
 from mcpvb.classes import VulnClass  # noqa: E402
 
 SURFACE, INK, MUTED, GRID, BAR = "#fcfcfb", "#52514e", "#898781", "#e1e0d9", "#2a78d6"
+CAVEAT = (
+    "† {count} of {total} cases: the notes of the case carry a caveat, mostly a fixed version that "
+    "keeps a weakness of the same class, so a finding that persists there is not necessarily a "
+    "missed fix ([docs/curation.md](../../docs/curation.md))."
+)
 STATUSES = ("ok", "error", "timeout", "unsupported", "unavailable")
 STATUS_CELLS = {"error": "err", "timeout": "t/o", "unsupported": "n/s", "unavailable": "n/a"}
 LEGEND = (
@@ -95,6 +100,9 @@ def render_report(metrics: dict, manifest: dict | None = None) -> str:
     lines += _split_table(variants, names)
     lines += _status_table(metrics, names) + _details_table(variants, names)
     lines += ["", "## Cases", "", LEGEND, ""]
+    caveats = {o["case_id"] for o in metrics["cases"] if o.get("caveat")}
+    if caveats:
+        lines += [CAVEAT.format(count=len(caveats), total=len(case_ids)), ""]
     lines.append("| Case | Class | Half | " + " | ".join(names) + " |")
     lines.append("|---|---|---|" + "---|" * len(names))
     by_key = {(o["variant"], o["case_id"]): o for o in metrics["cases"]}
@@ -102,7 +110,8 @@ def render_report(metrics: dict, manifest: dict | None = None) -> str:
         first = next(o for o in metrics["cases"] if o["case_id"] == case_id)
         half = first.get("split") or "–"
         cells = [_cell(by_key[(n, case_id)]) if (n, case_id) in by_key else "–" for n in names]
-        lines.append(f"| {case_id} | {first['vuln_class']} | {half} | " + " | ".join(cells) + " |")
+        name = f"{case_id} †" if case_id in caveats else case_id
+        lines.append(f"| {name} | {first['vuln_class']} | {half} | " + " | ".join(cells) + " |")
     lines += [
         "",
         "![Recall per variant](recall.svg)",
@@ -167,14 +176,23 @@ def _status_table(metrics: dict, names: list[str]) -> list[str]:
     return lines
 
 
+def _fix_without_caveat(block: dict) -> str:
+    hits = block.get("fix_recognized_without_caveat")
+    total = block.get("fix_assessed_without_caveat")
+    return _counted(hits / total if total else None, hits, total)
+
+
 def _details_table(variants: dict, names: list[str]) -> list[str]:
     """Lenient recalls, recall per language and alarm details (docs/methodology.md)."""
     languages = sorted({language for n in names for language in variants[n]["by_language"]})
+    # metrics written before cases carried caveats have no such figures
+    with_caveats = any("fix_assessed_without_caveat" in variants[n]["overall"] for n in names)
     header = [
         "Variant",
         "Recall (file level)",
         "Recall (any class)",
         *(f"Recall ({language})" for language in languages),
+        *(["Fix recognized (no caveat)"] if with_caveats else []),
         "Median alarms/case",
         "Unclassified findings",
     ]
@@ -186,6 +204,7 @@ def _details_table(variants: dict, names: list[str]) -> list[str]:
             _pct(variant["lenient"]["recall_file_level"]),
             _pct(variant["lenient"]["recall_any_class"]),
             *(_pct(variant["by_language"].get(lang, {}).get("recall")) for lang in languages),
+            *([_fix_without_caveat(variant["overall"])] if with_caveats else []),
             _num(variant["overall"]["alarms_median_per_case"]),
             str(variant["overall"]["unclassified_findings"]),
         ]

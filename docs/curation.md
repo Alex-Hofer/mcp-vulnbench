@@ -30,7 +30,9 @@ option injection that is fixed in a later release, a guard that is only active w
 transport for which the behavior is intended. Such a case stays in the benchmark, because the
 vulnerable version is unaffected, and `notes` gets a sentence that starts with `Caveat:` and says
 what remains. A finding that persists in the fixed version of such a case is not necessarily a
-missed fix; the results document says how many cases carry a caveat.
+missed fix. The same marker is used when a location cannot be narrowed to the vulnerable tool, for
+example a request handler of several thousand lines that holds the sink inline. The report marks
+these cases and gives fix recognition also without them.
 
 ## Steps
 1. Read the advisory:

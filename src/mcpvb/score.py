@@ -61,6 +61,7 @@ class CaseOutcome:
     detected_any_class: bool | None
     persisting: bool | None
     split: str | None = None
+    caveat: bool = False  # the notes say that the fixed version is not clean (docs/curation.md)
 
 
 def score_case(
@@ -92,6 +93,7 @@ def score_case(
         else None,
         persisting=persisting,
         split=str(case.split) if case.split else None,
+        caveat="Caveat:" in case.notes,
     )
 
 
@@ -121,6 +123,7 @@ def _block(mine: list[CaseOutcome], found: list[Finding], kloc: dict[str, float]
     """The overall metrics of one variant on a set of cases (all of them, or one half)."""
     assessed = [o for o in mine if o.detected and o.persisting is not None]
     recognized = sum(1 for o in assessed if not o.persisting)
+    clean = [o for o in assessed if not o.caveat]
     runs = [
         status
         for o in mine
@@ -144,6 +147,8 @@ def _block(mine: list[CaseOutcome], found: list[Finding], kloc: dict[str, float]
         "fix_recognized": recognized,
         "fix_recognition": _rate(recognized, len(assessed)),
         "fix_assessed": len(assessed),
+        "fix_recognized_without_caveat": sum(1 for o in clean if not o.persisting),
+        "fix_assessed_without_caveat": len(clean),
         "alarms_per_kloc": round(len(classified) / total_kloc, 2) if total_kloc else None,
         "alarms_median_per_case": median(per_case) if per_case else None,
         "unclassified_findings": len(findings) - len(classified),

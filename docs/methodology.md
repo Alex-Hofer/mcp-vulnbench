@@ -40,6 +40,11 @@ JavaScript and TypeScript together on the other, since they share analyzers, rul
 - **Recall** = detected cases / cases whose vulnerable run is `ok`.
 - **Fix recognition** = detected cases without a persisting finding / detected cases whose fixed
   run is `ok`. A finding *persists* if it has the case's class and lies inside a fixed location.
+  Some fixed versions are not clean: the fix leaves a weakness of the same class behind, or the
+  location is so large that it holds other tools as well. The notes of such a case say so in a
+  sentence that starts with `Caveat:` ([curation.md](curation.md#fixes-that-leave-something-behind)),
+  the report marks the case with †, and its details table gives fix recognition a second time
+  without these cases.
 - **Alarms per KLOC** = classified findings (class among the five in scope) on the vulnerable
   versions of `ok` cases / KLOC of those versions. KLOC counts non-blank lines of the case language
   (JavaScript and TypeScript files alike for a case in either language) without `test`, `tests`, `node_modules`, `vendor`, `third_party`, `dist`, `build`, virtualenvs

@@ -290,6 +290,31 @@ def test_summarize_reports_each_half_per_language_group():
     assert (scripts["test"]["cases_ok"], scripts["test"]["detected"]) == (2, 1)
 
 
+def test_fix_recognition_is_also_reported_without_caveat_cases():
+    ok = Status.OK
+    # the fixed version of mcpvb-0001 keeps a weakness of the same class (docs/curation.md)
+    with_caveat = case("mcpvb-0001").model_copy(update={"notes": "Fixed in 1.2. Caveat: flags."})
+    plain = case("mcpvb-0002")
+    outcomes = [
+        score_case(
+            "v",
+            with_caveat,
+            ok,
+            ok,
+            [finding(15, case_id="mcpvb-0001")],
+            [finding(15, case_id="mcpvb-0001", version="fixed")],
+        ),
+        score_case("v", plain, ok, ok, [finding(15, case_id="mcpvb-0002")], []),
+    ]
+    assert [o.caveat for o in outcomes] == [True, False]
+    overall = summarize(outcomes, {}, {})["variants"]["v"]["overall"]
+    assert (overall["fix_recognized"], overall["fix_assessed"]) == (1, 2)
+    assert (overall["fix_recognized_without_caveat"], overall["fix_assessed_without_caveat"]) == (
+        1,
+        1,
+    )
+
+
 def test_a_half_without_ok_runs_has_no_rates():
     outcome = score_case(
         "v", CASE.model_copy(update={"split": "test"}), Status.ERROR, Status.ERROR, [], []
