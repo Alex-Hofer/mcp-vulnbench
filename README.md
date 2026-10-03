@@ -68,7 +68,8 @@ comparison; on both together `codeql` finds 3 of 37 cases and `codeql-mcp` 23.
 - These rows have a gap that only the test half showed. `js/path-injection` is a data-flow query
   with its own flow states and does not follow a summary of kind `taint`, so a path that went
   through `parse` is still lost (mcpvb-0054). A probe confirms that the same rows with kind
-  `value` would be followed. The models stay as they were measured.
+  `value` would be followed. The models stay as they were measured; the proposal to CodeQL
+  ([github/codeql#22749](https://github.com/github/codeql/pull/22749)) uses `value`.
 - The cost on the test half: 12 alarms become 388 (0.08 to 2.62 per KLOC, median 2 per server).
   Both Semgrep variants report more on the same code (434 and 713). 255 of the 388 are
   `js/path-injection` in two servers whose tools read and write caller-chosen paths by design
