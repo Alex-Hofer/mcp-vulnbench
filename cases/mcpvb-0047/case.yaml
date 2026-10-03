@@ -17,5 +17,5 @@ fixed:
   locations:
     - {file: src/Markdownify.ts, function: Markdownify._markitdown, lines: [20, 51]}
 source: ghsa
-split: null
+split: dev
 notes: "The filepath argument of pptx-to-markdown (and of the other *-to-markdown file tools, together with the uvPath and projectRoot arguments) is passed by the CallTool handler in src/server.ts through Markdownify.toMarkdown to _markitdown, which ran `${uvPath} run ${markitdownPath} \"${filePath}\"` with child_process.exec. The fix calls execFile with an argument array instead, so the file path is no longer parsed by a shell. Fix: https://github.com/zcaceres/markdownify-mcp/commit/a31204de058b22a47e1dcc24508993cfe97e5bb3 (merge of the advisory fork, two commits; vulnerable is the first parent of the merge) The advisory lists CWE-77, but the sink is an OS command string, so the case uses CWE-78. Caveat: the fix removes the shell, but uvPath (the executable that is run) and projectRoot are still tool arguments in the fixed version, so a command-injection finding there may be a true positive for that weakness rather than a missed fix."

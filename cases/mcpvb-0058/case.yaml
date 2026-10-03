@@ -21,5 +21,5 @@ fixed:
     - {file: src/url-reader.ts, function: checkContentLength, lines: [157, 197]}
     - {file: src/url-security.ts, function: assertUrlAllowed, lines: [61, 70]}
 source: ghsa
-split: null
+split: dev
 notes: "The url argument of the web_url_read tool is passed to fetchAndConvertToMarkdown, where assertUrlAllowed only compares the literal hostname with private names and address ranges; a public-looking hostname that resolves to a loopback, private or link-local address passes and is requested with undici fetch (HEAD in checkContentLength, GET in fetchAndConvertToMarkdown). The fix gives the URL reader its own undici Agent whose lookup hook (createUrlReaderLookup in src/proxy.ts) resolves all DNS answers, rejects private ones and pins the connection to the validated address; assertUrlAllowed itself is unchanged and only moves to src/url-security.ts. Single-commit fix (SEC-021) between v1.7.0 and v1.7.1. Fix: https://github.com/ihor-sokoliuk/mcp-searxng/commit/14575eaaa46a21391477d2b68673858ba6b52bd6"

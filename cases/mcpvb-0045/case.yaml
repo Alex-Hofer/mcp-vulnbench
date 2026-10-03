@@ -17,5 +17,5 @@ fixed:
   locations:
     - {file: src/mcp/tools/import_tmx.ts, function: importTmx, lines: [20, 48]}
 source: ghsa
-split: null
+split: test
 notes: "importTmx downloaded the file named by the tmx_url argument of the import_tmx tool with `curl -L \"${tmx_url}\" -o \"${tempFilePath}\"` run through child_process.exec, so a URL containing a double quote or $(...) executed arbitrary commands. The fix removes the tmx_url option and the curl call, so the tool only accepts tmx_content; it is part of the squash commit of the feature PR 'Streammable HTTP events', which also moved the file from src/tools/ to src/mcp/tools/. Fix: https://github.com/translated/lara-mcp/commit/e534ef690adf390e4ac862a200b2a83f6cf45944 (PR #10, released as v0.0.12) The advisory lists CWE-77, but the sink is an OS command string, so the case uses CWE-78."

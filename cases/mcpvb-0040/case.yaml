@@ -20,5 +20,5 @@ fixed:
     - {file: src/tools/system-operations/smart-user.ts, function: SmartUser.getUserDetails, lines: [962, 1033]}
     - {file: src/tools/system-operations/smart-user.ts, function: SmartUser.lookupPasswdEntry, lines: [751, 767]}
 source: ghsa
-split: null
+split: dev
 notes: "The username argument of the smart_user tool (operation get-user-info) is passed unvalidated by the CallToolRequestSchema handler to SmartUser.run and getUserInfo and is interpolated by getUserDetails into the command string of a getent passwd / grep pipeline that is run through a shell with child_process.exec (sink; further exec calls with the same value follow in getUserGroups and canUserSudo), so a command substitution in the username is executed. The fix (one commit hardening all smart_* tools) runs the commands without a shell through the new execFileSafe/assertSafeArg helpers (src/utils/safe-exec.ts), moves the lookup into lookupPasswdEntry, tightens SmartUserSchema and makes the handler use the validated arguments. Fix: https://github.com/ooples/token-optimizer-mcp/pull/169 (squash commit b4ee96dac799cbfba0a9f9c17844ce9d613cbcc7) The CallToolRequestSchema handler, the dispatcher of all tools (about 1,600 lines), is not listed as a location."

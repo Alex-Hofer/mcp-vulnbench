@@ -23,5 +23,5 @@ fixed:
     - {file: src/state.ts, function: resolveStatePath, lines: [13, 26]}
     - {file: src/tools/session.ts, function: browser_save_state, lines: [230, 240]}
 source: ghsa
-split: null
+split: dev
 notes: "The save_dir argument of the browser_download tool is used unchecked by downloadUrl as the destination directory for mkdirSync and download.saveAs and, with force_fetch, for writeFileSync in fetchFallback (sinks); the path argument of browser_save_state/browser_load_state is returned unchanged by resolveStatePath and then written or read by the handlers in src/tools/session.ts. The fix confines both values with the new confineToDir (src/pathSafe.ts) to ~/.browse-mcp/downloads and ~/.browse-mcp/state and reduces download filenames to a basename. Fix: https://github.com/That1Drifter/browse-mcp/pull/58 (squash commit 5352a4a56f626254b445bfa07e4bb48c5aad15c1)"

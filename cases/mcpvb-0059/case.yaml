@@ -19,5 +19,5 @@ fixed:
     - {file: src/utils/http.ts, function: makeCkanRequest, lines: [236, 354]}
     - {file: src/tools/sparql.ts, function: querySparqlEndpoint, lines: [47, 102]}
 source: ghsa
-split: null
+split: dev
 notes: "The server_url argument of ckan_package_search and the other CKAN tools (the advisory calls it base_url) is turned into the request URL in makeCkanRequest and sent with axios.get (Node) or fetch (Workers) without any check of the host; the endpoint_url argument of sparql_query reaches fetch in querySparqlEndpoint the same way (HTTPS only). The fix adds validateServerUrl (http/https only, no localhost, private, loopback or link-local address literals) and calls it in both functions. It spans two code commits with unrelated data/docs commits in between: 094eb5fd (makeCkanRequest, v0.4.84) and 79c0c067 (sparql_query, 'gap from GHSA-3xm7-qw7j-qc8v'); vulnerable is the parent of the first, fixed is the second (the tagged v0.4.85, a784036e, only adds the version bump). The advisory's reference to a kysely commit is unrelated. Fix: https://github.com/ondata/ckan-mcp-server/compare/5c1bea16fc9f9682f57ec2e1ac200efb5c1dd48e...79c0c0677b082b87cf7304af9a654562083ffa84"

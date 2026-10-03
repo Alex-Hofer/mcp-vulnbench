@@ -18,5 +18,5 @@ fixed:
     - {file: src/tools/xcode/index.ts, function: "<anonymous> tool run_lldb", lines: [202, 224]}
     - {file: src/utils/execFile.ts, function: runExecFile, lines: [19, 45]}
 source: ghsa
-split: null
+split: dev
 notes: "The run_lldb tool interpolated its args and command arguments into the string `xcrun lldb ${args} -o \"${command}\" -b` and ran it with child_process.exec, so shell metacharacters in a tool argument executed arbitrary commands. The fix replaces every exec call of the server (run_lldb and the other tools named in the report) with the new runExecFile helper, which calls execFile with an argument array and no shell. Fix: https://github.com/r-huijts/xcode-mcp-server/commit/11f8d6bacadd153beee649f92a78a9dad761f56f (fixes issue #13) The advisory lists CWE-74 and CWE-77, but the sink is an OS command string, so the case uses CWE-78."

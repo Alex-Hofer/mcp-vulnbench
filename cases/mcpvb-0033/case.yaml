@@ -19,5 +19,5 @@ fixed:
     - {file: src/mcp-server/tools/gitInit/logic.ts, function: gitInitLogic, lines: [63, 230]}
     - {file: src/mcp-server/tools/gitAdd/logic.ts, function: addGitFiles, lines: [48, 193]}
 source: ghsa
-split: null
+split: test
 notes: "The initialBranch and path arguments of git_init reach gitInitLogic, and the path and files arguments of git_add reach addGitFiles; both interpolated them into a double-quoted git command string run with child_process.exec, so $(...) or a quote followed by shell metacharacters executes commands. The fix replaces exec with execFile and argument arrays in these and 21 further tool logic files with the same pattern (git_commit, git_clone, git_log, ...); the two listed locations are the ones the advisory demonstrates. Fix: https://github.com/cyanheads/git-mcp-server/commit/0dbd6995ccdf76ab770b58013034365b2d06c4d9 The advisory lists CWE-77, but the sink is an OS command string, so the case uses CWE-78."

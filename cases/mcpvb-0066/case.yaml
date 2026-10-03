@@ -19,5 +19,5 @@ fixed:
     - {file: index.ts, function: parseAuthHeaders, lines: [12396, 12442]}
     - {file: index.ts, function: listIssues, lines: [2021, 2062]}
 source: ghsa
-split: null
+split: test
 notes: "With ENABLE_DYNAMIC_API_URL=true (requires REMOTE_AUTHORIZATION=true) parseAuthHeaders takes the X-GitLab-API-URL header of a Streamable HTTP request to the MCP endpoint, checks only that it parses as a URL and stores it as the session's API URL; every tool then builds its request from getEffectiveApiUrl() and sends it with fetch() together with the caller's GitLab token, e.g. listIssues for the list_issues call of the advisory's proof of concept (one of many such functions). The fix resolves the header through resolveTrustedGitLabApiUrl, which only accepts hosts from GITLAB_API_URL or the new GITLAB_ALLOWED_HOSTS (also applied to the download proxy route, which is not part of this case). The tainted value is a header of the MCP HTTP transport. The advisory references PR #625 (6ffb4cc7), which only adds hints to the rejection messages; the allowlist itself was introduced by PR #553, squash commit 404a993e, first released in v2.1.27, the advisory's patched version. Fix: https://github.com/zereight/gitlab-mcp/pull/553"

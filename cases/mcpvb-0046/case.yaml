@@ -19,5 +19,5 @@ fixed:
     - {file: src/index.ts, function: "<anonymous> CallTool handler", lines: [247, 383]}
     - {file: src/index.ts, function: MaigretServer.execCommand, lines: [148, 161]}
 source: ghsa
-split: null
+split: test
 notes: "The CallTool handler joined the username and tags arguments of search_username (and the url argument of parse_url) into a 'docker run ...' command string that MaigretServer.execCommand ran with child_process.exec, so shell metacharacters in the tool arguments execute commands on the host. The fix validates username, tags and url and runs docker with execFile and an argument array. Fixed commit is the merge commit of PR #10 on main; its tree is identical to the advisory's commit b1ae073c4b3e789ab8de36dc6ca8111ae9399e7a. The repository moved from BurtTheCoder/mcp-maigret, the name in the advisory. Fix: https://github.com/w0h1v/mcp-maigret/pull/10 The advisory lists CWE-74 and CWE-77, but the sink is an OS command string, so the case uses CWE-78."

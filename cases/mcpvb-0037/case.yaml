@@ -19,5 +19,5 @@ fixed:
     - {file: src/tools/port_forward.ts, function: startPortForward, lines: [74, 119]}
     - {file: src/tools/port_forward.ts, function: executePortForward, lines: [6, 53]}
 source: ghsa
-split: null
+split: test
 notes: "The CallTool handler passes the port_forward arguments to startPortForward, which concatenated namespace, resourceType and resourceName into a 'kubectl port-forward ...' string that executeKubectlCommandAsync split on spaces and passed to spawn, so a value such as 'my-db --address=0.0.0.0' injects additional kubectl flags (no shell is involved). The fix builds an argument array and calls spawn('kubectl', args) in the renamed helper executePortForward. Fixed commit is the merge commit of PR #300 on main (branch commit 8cb0683ffc9a6eb01b531881f1a97af0083e0fda). Fix: https://github.com/Flux159/mcp-server-kubernetes/pull/300 Caveat: the fixed startPortForward still appends resourceType/resourceName unguarded, and a value such as --server=... is taken as a kubectl flag (fixed later in 9a20ffd, PR #329), so a command-injection finding there may be a true positive for that bug rather than a missed fix."

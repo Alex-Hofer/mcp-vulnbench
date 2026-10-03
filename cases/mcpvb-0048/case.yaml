@@ -21,5 +21,5 @@ fixed:
     - {file: src/McpContext.ts, function: McpContext.validatePath, lines: [183, 235]}
     - {file: src/McpContext.ts, function: McpContext.saveFile, lines: [756, 774]}
 source: ghsa
-split: null
+split: test
 notes: "The filePath argument of take_screenshot (and of the other filePath tools such as upload_file, take_snapshot, take_heapsnapshot) is checked by McpContext.validatePath against the client's workspace roots with path.resolve only, so a symlink inside a root that points outside passes and McpContext.saveFile follows it in fs.mkdir/fs.writeFile (sink). The fix makes validatePath async and compares fs.realpath-canonicalized paths (new helper resolveCanonicalPath in src/utils/files.ts) against the canonicalized roots; all callers now await it. Fix: https://github.com/ChromeDevTools/chrome-devtools-mcp/pull/2127 (squash commit 176eb695137d9c46a61e2d4d5571880c5145cf46)"

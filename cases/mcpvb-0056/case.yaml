@@ -19,5 +19,5 @@ fixed:
     - {file: packages/mcp-tools/src/tools/jobs/space-to-space-migration/exportSpace.ts, function: tool, lines: [105, 159]}
     - {file: packages/mcp-tools/src/tools/jobs/space-to-space-migration/importSpace.ts, function: tool, lines: [84, 124]}
 source: ghsa
-split: null
+split: test
 notes: "The export_space and import_space tools spread their tool-call arguments, including the schema fields host, proxy, rawProxy and headers, into the options handed to contentful-export / contentful-import together with the server's management token; these libraries build the Management API base URL from host (or route through proxy), so the caller chooses the endpoint that receives the requests and the bearer token. The fix removes host, proxy, rawProxy, headers and config (for export_space also hostDelivery and deliveryToken) from the tool schemas and always sets host from the server configuration. The sink is the library call in the tool function (the request itself is made inside the dependency); both workspace packages (packages/mcp-server registers the tools of packages/mcp-tools) form the server, hence no subdir. Fix: https://github.com/contentful/contentful-mcp-server/pull/376 (squash commit fa7477ee48515f4248bc91a025eab0ca83423fe0)"

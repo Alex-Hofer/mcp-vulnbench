@@ -19,5 +19,5 @@ fixed:
     - {file: src/index.ts, function: "<anonymous> tool cache-view", lines: [393, 415]}
     - {file: src/index.ts, function: executeMagerun2Command, lines: [41, 134]}
 source: ghsa
-split: null
+split: test
 notes: "The cache-view tool built the string `cache:view --type=${type} \"${key}\"` from its key and type arguments and passed it to executeMagerun2Command, which appended it to the magerun2 binary name and ran it with child_process.exec; most other tools of the server built their subcommands the same way. The fix makes every tool pass an argument array, which executeMagerun2Command runs with execFile (or quotes with shellQuote for the Docker wrapper commands). Fix: https://github.com/elgentos/magento2-dev-mcp/pull/5 (merge commit aa1ffcc0aea1b212c69787391783af27df15ae9d, two commits; vulnerable is the first parent of the merge) The advisory lists CWE-77, but the sink is an OS command string, so the case uses CWE-78. Caveat: on its Docker path the fixed executeMagerun2Command still calls exec with a command string whose arguments are quoted by shellQuote, so a command-injection finding there is not necessarily a missed fix."

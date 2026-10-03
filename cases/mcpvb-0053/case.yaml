@@ -23,5 +23,5 @@ fixed:
     - {file: src/handlers/fileHandler.ts, function: handleFafWrite, lines: [167, 236]}
     - {file: src/handlers/tools.ts, function: FafToolHandler.getProjectPath, lines: [35, 55]}
 source: ghsa
-split: null
+split: test
 notes: "The path argument of the faf_read and faf_write tools is dispatched by FafToolHandler.callTool to handleFafRead/handleFafWrite, which only apply a small denylist (PathValidator) before fs.readFile and fs.mkdir/fs.writeFile (sinks), so absolute paths outside the project are read or written; the path argument of the other .faf tools is resolved without confinement by getProjectPath. The fix routes these paths through the new confineFileOp/confinePath (src/utils/safe-path.ts: symlink-canonical, limited to the working directory, the temp directory or FAF_ALLOWED_ROOTS) and adds a central PathConfinementError catch in callTool. Fix: https://github.com/Wolfe-Jam/faf-mcp/commit/ae4a5017e18381116c026f7317b43a6dbdd8df73 (single commit, no PR; merged into main by 10f18dd2e52f7f4dda0b3b9e822d76373717d2f4 and released as v2.1.3)"

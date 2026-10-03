@@ -20,5 +20,5 @@ fixed:
     - {file: src/index.ts, function: buildDeviceArgs, lines: [285, 287]}
     - {file: src/index.ts, function: runAdb, lines: [62, 68]}
 source: ghsa
-split: null
+split: dev
 notes: "The inspect_ui tool put its device and outputPath arguments (device via formatDeviceArg) into strings such as `adb ${deviceArg}shell uiautomator dump ${remotePath}` and ran them with child_process.exec, so shell metacharacters in a tool argument executed commands on the host; the other adb tools built their commands the same way. The fix replaces exec by the new runAdb helper (execFile with an argument array) and formatDeviceArg by buildDeviceArgs in all tools. Fix: https://github.com/srmorete/adb-mcp/pull/8 (merge commit 041729c0b25432df3199ff71b3163a307cf4c28c; the PR has two commits, vulnerable is the first parent of the merge)"

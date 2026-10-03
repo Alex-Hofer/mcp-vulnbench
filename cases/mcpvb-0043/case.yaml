@@ -22,5 +22,5 @@ fixed:
     - {file: src/package-docs-server.ts, function: PackageDocsServer.getLocalGoDoc, lines: [449, 490]}
     - {file: src/package-docs-server.ts, function: safeGoDoc, lines: [43, 55]}
 source: ghsa
-split: null
+split: dev
 notes: "The package and symbol arguments of the describe_go_package tool (alias lookup_go_doc) were interpolated into the shell strings `go list -f '{{.Dir}}' ${packageName}` and `go doc ${packageName}.${symbol}` and run with child_process.exec in describeGoPackage, isGoPackageInstalledLocally and getLocalGoDoc. The fix routes these calls through the new helpers safeGoDoc and safeGoList, which strip everything but [a-zA-Z0-9._/-] and call execFile with an argument array; the Python and Swift helpers of the same file were converted to execFile as well. Fix: https://github.com/sammcj/mcp-package-docs/commit/cb4ad49615275379fd6f2f1cf1ec4731eec56eb9 (PR #13) The advisory lists CWE-77, but the sink is an OS command string, so the case uses CWE-78."

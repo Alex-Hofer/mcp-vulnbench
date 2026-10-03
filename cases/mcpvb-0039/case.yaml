@@ -18,5 +18,5 @@ fixed:
     - {file: src/index.ts, function: "<anonymous> tool ui_tap", lines: [212, 250]}
     - {file: src/index.ts, function: run, lines: [25, 34]}
 source: ghsa
-split: null
+split: test
 notes: "The handler of the ui_tap tool interpolated its duration and udid string arguments into an 'idb ui tap ...' command string run with child_process.exec, so shell metacharacters such as ';' execute commands; the handlers of ui_type, ui_describe_all, ui_swipe, ui_describe_point and screenshot had the same pattern. The fix adds regular-expression validation to the tool schemas and runs the commands through the new helper run(), which uses execFile with an argument array and a '--' separator. Fixed commit is the merge commit from the advisory's private fork on main. Fix: https://github.com/joshuayoes/ios-simulator-mcp/commit/eb53a4f2cc8bbeb13e8d6d930f00167befcdb809"

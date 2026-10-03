@@ -19,5 +19,5 @@ fixed:
     - {file: src/url-reader.ts, function: fetchAndConvertToMarkdown, lines: [217, 388]}
     - {file: src/url-reader.ts, function: assertUrlAllowed, lines: [83, 92]}
 source: ghsa
-split: null
+split: dev
 notes: "The url argument of the web_url_read tool is fetched by fetchAndConvertToMarkdown with undici fetch; the private-address check in assertUrlAllowed returned early unless MCP_HTTP_HARDEN=true, so in the default configuration loopback, private and metadata URLs were fetched and redirects were followed unchecked. The fix makes assertUrlAllowed run unless MCP_HTTP_ALLOW_PRIVATE_URLS is set, follows redirects manually with a check per hop and extends the address checks (0.0.0.0/8, hex IPv4-mapped IPv6). The advisory names 1.2.1 as the patched version, but the fix commit is already part of v1.2.0 (its release notes announce the default blocking; v1.2.1 is a startup hotfix), so the commits are taken from the fix commit itself. Fix: https://github.com/ihor-sokoliuk/mcp-searxng/commit/48e5ecdcb4166a60b94c252dbe74b0a318110ac4 Caveat: the fixed assertUrlAllowed compares only the literal hostname, so a hostname that resolves to a private address still passes (GHSA-mrvx-jmjw-vggc, fixed later in 1.7.1); an SSRF finding there may be a true positive for that bug rather than a missed fix."

@@ -19,5 +19,5 @@ fixed:
     - {file: src/server.ts, function: "<anonymous> tool mobile_save_screenshot", lines: [591, 600]}
     - {file: src/server.ts, function: "<anonymous> tool mobile_start_screen_recording", lines: [708, 743]}
 source: ghsa
-split: null
+split: test
 notes: "The saveTo argument of the mobile_save_screenshot tool is passed unchecked to fs.writeFileSync in the tool callback (sink); the output argument of mobile_start_screen_recording likewise reaches the --output option of the spawned mobilecli screenrecord process. The fix adds validateFileExtension and validateOutputPath (src/utils.ts) to both callbacks, which restrict the extension and confine the symlink-resolved path to the working directory or the temp directory. Fix: https://github.com/mobile-next/mobile-mcp/commit/f5e32295903128c1e71cf915ae6c0b76c7b0153b (PR #296)"

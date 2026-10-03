@@ -19,5 +19,5 @@ fixed:
     - {file: src/mcp/tools/get-figma-data-tool.ts, function: getFigmaData, lines: [37, 98]}
     - {file: src/utils/fetch-with-retry.ts, function: fetchWithRetry, lines: [16, 81]}
 source: ghsa
-split: null
+split: dev
 notes: "The fileKey and nodeId arguments of get_figma_data are placed by getFigmaData and FigmaService.getRawFile/getRawNode into the Figma API URL; when fetch fails (for example with a 404), fetchWithRetry falls back to a 'curl ... \"<url>\"' command string run with child_process.exec, so a fileKey such as $(id>/tmp/x) executes shell commands. The fix runs curl with execFile and an argument array and validates fileKey and nodeId with regular expressions in the tool schema and handler. Fixed commit is the squash commit of PR #246 on main. Fix: https://github.com/GLips/Figma-Context-MCP/commit/7f4b5859454b0567c2121ff22c69a0344680b124 The advisory lists CWE-77, but the sink is an OS command string, so the case uses CWE-78."

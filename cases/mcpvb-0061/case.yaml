@@ -21,5 +21,5 @@ fixed:
     - {file: src/browser.ts, function: navigateTo, lines: [54, 71]}
     - {file: src/tools.ts, function: "<anonymous> tool download_media", lines: [210, 273]}
 source: ghsa
-split: null
+split: test
 notes: "The url argument of the auth_fetch tool is checked by assertSafeUrl before navigateTo calls page.goto(), but isPrivateV6 only recognises IPv4-mapped IPv6 addresses in dotted form; the WHATWG URL parser normalises http://[::ffff:127.0.0.1]/ to [::ffff:7f00:1], which is treated as public, so loopback and private IPv4 targets are reached (download_media passes the same guard before ctx.request.get in its tool handler). The fix rebuilds the IPv4 address from the two trailing hex groups and applies the private-range check. The vulnerable commit is the merge commit that fixed GHSA-hv85-774v-26fg (this advisory is a bypass of that fix); the fixed commit is the merge commit of pull request #9 (single commit 177ec5f). Fix: https://github.com/ymw0407/auth-fetch-mcp/pull/9"
