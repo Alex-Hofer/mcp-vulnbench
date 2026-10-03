@@ -123,3 +123,19 @@ def test_functions_rejects_other_file_types(tmp_path):
     path.write_text("# notes\n", encoding="utf-8")
     with pytest.raises(ValueError, match="notes.md"):
         functions(path)
+
+
+TOY_SERVER_TS = Path(__file__).resolve().parents[1] / "examples" / "toy-server-ts"
+
+
+def test_toy_ts_server_ranges_match_the_ground_truth():
+    assert script_functions(TOY_SERVER_TS / "vulnerable" / "server.ts") == [
+        ("pingHost", 11, 13),
+        (ANONYMOUS, 15, 17),
+        (ANONYMOUS, 19, 22),
+    ]
+    assert script_functions(TOY_SERVER_TS / "fixed" / "server.ts") == [
+        ("pingHost", 13, 18),
+        (ANONYMOUS, 20, 22),
+        (ANONYMOUS, 24, 31),
+    ]

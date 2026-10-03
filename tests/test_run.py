@@ -104,6 +104,13 @@ def test_unsupported_language_skips_the_container(bandit, case, tmp_path):
     assert runner.calls == []
 
 
+def test_bandit_is_unsupported_on_typescript(bandit, toy_ts_cases_dir, tmp_path):
+    case = load_cases(toy_ts_cases_dir, ["mcpvb-9003"])[0]
+    runner = FakeRunner()
+    status = run_one(bandit, case, "vulnerable", tmp_path, tmp_path / "results", runner)
+    assert status is Status.UNSUPPORTED and runner.calls == []
+
+
 def test_missing_sources_are_unavailable(bandit, case, tmp_path):
     status = run_one(bandit, case, "fixed", None, tmp_path / "results", FakeRunner())
     assert status is Status.UNAVAILABLE

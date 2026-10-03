@@ -241,3 +241,12 @@ def test_a_named_location_does_not_match_an_unnamed_function(tmp_path):
     wrong = script_case(tmp_path / "a", "read_note", [5, 7])
     problems = check_locations(wrong, fetch_case(wrong, tmp_path / "cache-a"))
     assert problems and "function read_note not found" in problems[0]
+
+
+def test_fetch_exports_the_typescript_toy_and_accepts_its_ground_truth(toy_ts_cases_dir, tmp_path):
+    cases = load_cases(toy_ts_cases_dir)
+    assert [case.id for case in cases] == ["mcpvb-9003", "mcpvb-9004"]
+    for case in cases:
+        sources = fetch_case(case, tmp_path / "cache")
+        assert (sources.vulnerable / "server.ts").is_file()
+        assert check_locations(case, sources) == []

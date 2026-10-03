@@ -90,3 +90,76 @@ def toy_cases_dir(tmp_path: Path, toy_repo: tuple[str, str, str]) -> Path:
         folder.mkdir(parents=True)
         (folder / "case.yaml").write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     return cases_dir
+
+
+TOY_SERVER_TS = REPO_ROOT / "examples" / "toy-server-ts"
+
+
+@pytest.fixture
+def toy_ts_repo(tmp_path: Path) -> tuple[str, str, str]:
+    """Commit 1 = vulnerable TypeScript toy server, commit 2 = fixed."""
+    repo = tmp_path / "toy-ts-remote"
+    repo.mkdir()
+    git(repo, "init", "--quiet", "--initial-branch=main")
+    git(repo, "config", "user.name", "Test")
+    git(repo, "config", "user.email", "test@example.invalid")
+    git(repo, "config", "commit.gpgsign", "false")
+    git(repo, "config", "core.autocrlf", "false")
+    shas = []
+    for version in ("vulnerable", "fixed"):
+        shutil.copyfile(TOY_SERVER_TS / version / "server.ts", repo / "server.ts")
+        git(repo, "add", "-A")
+        git(repo, "commit", "--quiet", "--message", f"{version} version")
+        shas.append(git(repo, "rev-parse", "HEAD"))
+    return repo.as_uri(), shas[0], shas[1]
+
+
+def toy_ts_case_data(url: str, vulnerable: str, fixed: str) -> list[dict]:
+    """Ground truth of the TypeScript toy server (examples/toy-server-ts/*/server.ts)."""
+    common = {
+        "repo": url,
+        "license": "MIT",
+        "language": "typescript",
+        "source": "other",
+        "split": "dev",
+    }
+
+    def version(sha: str, function: str, lines: list[int]) -> dict:
+        return {
+            "commit": sha,
+            "locations": [{"file": "server.ts", "function": function, "lines": lines}],
+        }
+
+    return [
+        {
+            **common,
+            "id": "mcpvb-9003",
+            "title": "Toy: command injection in ping (TypeScript)",
+            "class": "command-injection",
+            "cwe": "CWE-78",
+            "mcp_tool": "ping",
+            "vulnerable": version(vulnerable, "pingHost", [11, 13]),
+            "fixed": version(fixed, "pingHost", [13, 18]),
+        },
+        {
+            **common,
+            "id": "mcpvb-9004",
+            "title": "Toy: path traversal in read_note (TypeScript)",
+            "class": "path-traversal",
+            "cwe": "CWE-22",
+            "mcp_tool": "read_note",
+            # the handler is a callback without a name
+            "vulnerable": version(vulnerable, "<anonymous> tool read_note", [19, 22]),
+            "fixed": version(fixed, "<anonymous> tool read_note", [24, 31]),
+        },
+    ]
+
+
+@pytest.fixture
+def toy_ts_cases_dir(tmp_path: Path, toy_ts_repo: tuple[str, str, str]) -> Path:
+    cases_dir = tmp_path / "cases-ts"
+    for data in toy_ts_case_data(*toy_ts_repo):
+        folder = cases_dir / data["id"]
+        folder.mkdir(parents=True)
+        (folder / "case.yaml").write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    return cases_dir
