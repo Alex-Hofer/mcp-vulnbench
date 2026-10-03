@@ -7,7 +7,7 @@ version: "2.27.1"
 image: mcpvb/codeql-mcp:2.27.1
 base_image: mcpvb/codeql:2.27.1
 # The models are developed on the development half; test cases run only against this tag.
-frozen_at: models-v1
+frozen_at: models-v2
 dockerfile: models/codeql
 languages: [python, typescript, javascript]
 command: [run-codeql.sh, "{lang}", "{src}", "{out}", "--additional-packs=/opt/mcpvb/models", "--model-packs=mcpvb/mcp-models", "--model-packs=mcpvb/mcp-models-js"]

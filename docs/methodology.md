@@ -82,9 +82,9 @@ behavior are deliberate:
     handlers; the HTTP headers that `fastmcp` hands to handlers; the bearer token that token
     verifiers and `get_access_token()` receive.
   - JavaScript and TypeScript (`@modelcontextprotocol/sdk` 1.x, `@modelcontextprotocol/server` 2.x,
-    `fastmcp`): the arguments of tool, resource and prompt callbacks; the request a low-level
-    request handler receives; the transport headers and the bearer token the SDK hands to a
-    callback. Four more rows carry taint through `zod` (`parse`, `safeParse` and their async
+    `fastmcp`; frozen as `models-v2`, which leaves the Python rows as they were): the arguments
+    of tool, resource and prompt callbacks; the request a low-level request handler receives;
+    the transport headers and the bearer token the SDK hands to a callback. Four more rows carry taint through `zod` (`parse`, `safeParse` and their async
     forms): a low-level handler gets raw arguments and validates them with a schema first, and
     CodeQL, which has no model of zod, would lose the input at that call.
 - In-source suppressions and the analyzed project's tool configuration files are ignored for
