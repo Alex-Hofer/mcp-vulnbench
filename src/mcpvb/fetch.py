@@ -9,7 +9,7 @@ import tarfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
-from mcpvb.curate import python_functions
+from mcpvb.curate import ANONYMOUS, SCRIPT_SUFFIXES, functions
 from mcpvb.fsutil import remove_tree
 from mcpvb.schema import Case, Location
 
@@ -128,21 +128,26 @@ def check_locations(case: Case, sources: CaseSources) -> list[str]:
                     f"{case.id} {name}: lines {list(loc.lines)} "
                     f"exceed the {n_lines} lines of {loc.file}"
                 )
-            elif loc.file.endswith(".py"):
-                problems += [f"{case.id} {name}: {p}" for p in _check_python_function(loc, path)]
+            elif path.suffix == ".py" or path.suffix in SCRIPT_SUFFIXES:
+                problems += [f"{case.id} {name}: {p}" for p in _check_function(loc, path)]
     return problems
 
 
-def _check_python_function(loc: Location, path: Path) -> list[str]:
-    """The location must cover exactly the named function (first decorator to last line)."""
+def _check_function(loc: Location, path: Path) -> list[str]:
+    """The location must cover exactly the named function (first decorator to last line).
+
+    A location called `<anonymous>` (optionally followed by a hint for the reader) must cover
+    exactly one function without a name, such as a callback passed to `server.tool()`.
+    """
     try:
-        functions = python_functions(path)
+        found = functions(path)
     except (SyntaxError, ValueError) as exc:
         return [f"cannot parse {loc.file}: {exc}"]
+    wanted = ANONYMOUS if loc.function.startswith(ANONYMOUS) else loc.function
     matches = [
         (qualified, start, end)
-        for qualified, start, end in functions
-        if loc.function in (qualified, qualified.rsplit(".", 1)[-1])
+        for qualified, start, end in found
+        if wanted in (qualified, qualified.rsplit(".", 1)[-1])
     ]
     if not matches:
         return [f"function {loc.function} not found in {loc.file}"]

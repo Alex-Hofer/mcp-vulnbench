@@ -9,7 +9,7 @@ from pathlib import Path
 import typer
 
 from mcpvb import __version__, docker
-from mcpvb.curate import python_functions
+from mcpvb.curate import functions as source_functions
 from mcpvb.fetch import CaseSources, FetchError, check_locations, fetch_case
 from mcpvb.loc import count_kloc
 from mcpvb.normalize import Finding, load_run
@@ -317,13 +317,20 @@ def report(results_dir: Path = RESULTS_DIR) -> None:
     typer.echo(f"wrote {write_report(results_dir)}")
 
 
-PYTHON_FILE = typer.Argument(..., exists=True, dir_okay=False, help="A Python source file.")
+SOURCE_FILE = typer.Argument(
+    ..., exists=True, dir_okay=False, help="A Python, TypeScript or JavaScript source file."
+)
 
 
 @app.command()
-def functions(path: Path = PYTHON_FILE) -> None:
+def functions(path: Path = SOURCE_FILE) -> None:
     """Print 'name<TAB>start-end' for every function (to fill `lines` in case.yaml)."""
-    for name, start, end in python_functions(path):
+    try:
+        ranges = source_functions(path)
+    except (SyntaxError, ValueError) as exc:
+        typer.echo(f"{path}: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    for name, start, end in ranges:
         typer.echo(f"{name}\t{start}-{end}")
 
 

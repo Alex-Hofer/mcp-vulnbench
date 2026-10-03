@@ -1,4 +1,4 @@
-from mcpvb.loc import count_kloc
+from mcpvb.loc import EXTENSIONS, count_kloc
 from mcpvb.schema import Language
 
 
@@ -17,3 +17,10 @@ def test_count_kloc_leaves_out_vendored_code(tmp_path):
         (tmp_path / "src" / folder).mkdir(parents=True)
         (tmp_path / "src" / folder / "lib.py").write_text("x = 1\n" * 50, encoding="utf-8")
     assert count_kloc(tmp_path, Language.PYTHON) == 0.001
+
+
+def test_script_suffixes_are_counted_for_both_script_languages():
+    from mcpvb.curate import SCRIPT_SUFFIXES
+
+    for language in (Language.TYPESCRIPT, Language.JAVASCRIPT):
+        assert EXTENSIONS[language] == set(SCRIPT_SUFFIXES)

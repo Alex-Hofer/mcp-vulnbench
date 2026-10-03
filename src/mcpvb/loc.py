@@ -4,7 +4,7 @@ from pathlib import Path
 
 from mcpvb.schema import Language
 
-_JS_TS = {".ts", ".tsx", ".js", ".mjs", ".cjs"}
+_JS_TS = {".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"}
 EXTENSIONS: dict[Language, set[str]] = {
     Language.PYTHON: {".py"},
     Language.TYPESCRIPT: _JS_TS,

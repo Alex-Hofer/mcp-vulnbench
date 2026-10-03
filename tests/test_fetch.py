@@ -187,3 +187,57 @@ def test_broken_mirror_is_cloned_again_despite_read_only_git_objects(toy_cases_d
     (mirror / "HEAD").unlink()  # the clone was interrupted
     fetch_case(case, tmp_path / "cache")
     assert (mirror / "HEAD").is_file()
+
+
+SCRIPT_SERVER = """\
+function pingHost(host: string): string {
+  return host;
+}
+
+server.tool("read_note", { name: z.string() }, async ({ name }) => {
+  return name;
+});
+"""
+
+
+def script_case(folder: Path, function: str, lines: list[int]) -> Case:
+    repo = folder / "ts-remote"
+    repo.mkdir(parents=True)
+    git(repo, "init", "--quiet", "--initial-branch=main")
+    git(repo, "config", "user.name", "Test")
+    git(repo, "config", "user.email", "test@example.invalid")
+    git(repo, "config", "commit.gpgsign", "false")
+    git(repo, "config", "core.autocrlf", "false")
+    shas = []
+    for message in ("vulnerable", "fixed"):
+        (repo / "server.ts").write_bytes((SCRIPT_SERVER + f"// {message}\n").encode())
+        git(repo, "add", "-A")
+        git(repo, "commit", "--quiet", "--message", message)
+        shas.append(git(repo, "rev-parse", "HEAD"))
+    data = toy_case_data(repo.as_uri(), *shas)[0]
+    data["language"] = "typescript"
+    for version in ("vulnerable", "fixed"):
+        data[version]["locations"] = [{"file": "server.ts", "function": function, "lines": lines}]
+    return Case.model_validate(data)
+
+
+def test_script_location_must_match_the_function(tmp_path):
+    case = script_case(tmp_path / "a", "pingHost", [1, 3])
+    assert check_locations(case, fetch_case(case, tmp_path / "cache-a")) == []
+    wrong = script_case(tmp_path / "b", "pingHost", [1, 2])
+    problems = check_locations(wrong, fetch_case(wrong, tmp_path / "cache-b"))
+    assert problems and "pingHost spans [1, 3]" in problems[0]
+
+
+def test_anonymous_location_must_match_an_unnamed_function(tmp_path):
+    case = script_case(tmp_path / "a", "<anonymous> tool read_note", [5, 7])
+    assert check_locations(case, fetch_case(case, tmp_path / "cache-a")) == []
+    wrong = script_case(tmp_path / "b", "<anonymous>", [5, 6])
+    problems = check_locations(wrong, fetch_case(wrong, tmp_path / "cache-b"))
+    assert problems and "<anonymous> spans [5, 7]" in problems[0]
+
+
+def test_a_named_location_does_not_match_an_unnamed_function(tmp_path):
+    wrong = script_case(tmp_path / "a", "read_note", [5, 7])
+    problems = check_locations(wrong, fetch_case(wrong, tmp_path / "cache-a"))
+    assert problems and "function read_note not found" in problems[0]

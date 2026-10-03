@@ -56,3 +56,17 @@ def test_validate_checks_the_tool_variants(tmp_path):
     result = CliRunner().invoke(app, args)
     assert result.exit_code == 1
     assert "Field required" in result.output
+
+
+def test_functions_lists_typescript_ranges(tmp_path):
+    path = tmp_path / "server.ts"
+    path.write_text("export function ping(host: string) {\n  return host;\n}\n", encoding="utf-8")
+    result = CliRunner().invoke(app, ["functions", str(path)])
+    assert result.exit_code == 0 and result.output == "ping\t1-3\n"
+
+
+def test_functions_rejects_other_files_with_one_line(tmp_path):
+    path = tmp_path / "notes.md"
+    path.write_text("# notes\n", encoding="utf-8")
+    result = CliRunner().invoke(app, ["functions", str(path)])
+    assert result.exit_code == 1 and "notes.md" in result.output
