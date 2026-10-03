@@ -1,5 +1,6 @@
-# CodeQL with the security-extended suite plus the MCP models in models/codeql/mcp.
-# Like the codeql variant, plus the two model-pack options; Python only, since the models are Python.
+# CodeQL with the security-extended suite plus the MCP models in models/codeql: the pack mcp for
+# Python and the pack mcp-js for JavaScript/TypeScript. Like the codeql variant, plus the
+# model-pack options; CodeQL applies the pack that extends the analyzed language.
 name: codeql-mcp
 tool: codeql
 version: "2.27.1"
@@ -8,6 +9,6 @@ base_image: mcpvb/codeql:2.27.1
 # The models are developed on the development half; test cases run only against this tag.
 frozen_at: models-v1
 dockerfile: models/codeql
-languages: [python]
-command: [run-codeql.sh, "{lang}", "{src}", "{out}", "--additional-packs=/opt/mcpvb/models", "--model-packs=mcpvb/mcp-models"]
+languages: [python, typescript, javascript]
+command: [run-codeql.sh, "{lang}", "{src}", "{out}", "--additional-packs=/opt/mcpvb/models", "--model-packs=mcpvb/mcp-models", "--model-packs=mcpvb/mcp-models-js"]
 timeout_s: 3600

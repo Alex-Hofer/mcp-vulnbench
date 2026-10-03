@@ -19,7 +19,7 @@ def test_repository_variants_load():
 
 def test_semgrep_and_codeql_cover_all_three_languages():
     variants = {variant.name: variant for variant in load_variants(TOOLS)}
-    for name in ("semgrep-default", "semgrep-mcp", "codeql"):
+    for name in ("semgrep-default", "semgrep-mcp", "codeql", "codeql-mcp"):
         assert all(variants[name].supports(language) for language in Language), name
 
 

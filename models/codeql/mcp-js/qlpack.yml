@@ -1,0 +1,7 @@
+name: mcpvb/mcp-models-js
+version: 1.0.0
+library: true
+extensionTargets:
+  codeql/javascript-all: "*"
+dataExtensions:
+  - models/*.model.yml

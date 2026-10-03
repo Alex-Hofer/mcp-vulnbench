@@ -64,16 +64,20 @@ behavior are deliberate:
 
 - CodeQL runs the `security-extended` suite, which adds lower-precision security queries to the
   default suite.
-- Semgrep runs the Python security rules of the semgrep-rules repository at a pinned commit
-  (`python/*/security`; `semgrep-mcp` adds `ai/ai-best-practices/mcp-*`) instead of a registry
-  ruleset that changes over time, and with `--timeout 0`, so no rule is cut off on a large file.
-- `codeql-mcp` is `codeql` plus the model pack in `models/codeql/mcp` (frozen as `models-v1`), which
-  marks MCP input as remote sources:
-  - the parameters of tool, resource and prompt handlers;
-  - the HTTP headers that `fastmcp` hands to handlers;
-  - the bearer token that token verifiers and `get_access_token()` receive.
-
-  It is declared for Python only, since the models are Python; nothing else differs.
+- Semgrep runs the security rules of the semgrep-rules repository for Python, JavaScript and
+  TypeScript at a pinned commit (`python/*/security`, `javascript/*/security`,
+  `typescript/*/security`; `semgrep-mcp` adds `ai/ai-best-practices/mcp-*` and
+  `typescript/mcp/security`) instead of a registry ruleset that changes over time, and with
+  `--timeout 0`, so no rule is cut off on a large file.
+- `codeql-mcp` is `codeql` plus the models in `models/codeql`, which mark MCP input as remote
+  sources. Nothing else differs.
+  - Python (`mcp`, `fastmcp`; frozen as `models-v1`): the parameters of tool, resource and prompt
+    handlers; the HTTP headers that `fastmcp` hands to handlers; the bearer token that token
+    verifiers and `get_access_token()` receive.
+  - JavaScript and TypeScript (`@modelcontextprotocol/sdk` 1.x, `@modelcontextprotocol/server` 2.x,
+    `fastmcp`): the arguments of tool, resource and prompt callbacks; the request a low-level
+    request handler receives; the transport headers and the bearer token the SDK hands to a
+    callback.
 - In-source suppressions and the analyzed project's tool configuration files are ignored for
   every tool (see [design.md](design.md#tool-configuration-policy)).
 
