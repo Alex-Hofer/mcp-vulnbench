@@ -14,9 +14,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKS = REPO_ROOT / "models" / "codeql"
 FIXTURES = REPO_ROOT / "tests" / "fixtures"
 TOKEN = (
-    r"(Member\[[\w,]+\]|ReturnValue|Instance|Subclass|Argument\[[\w:,.]+\]|Parameter\[[\w:,.]+\])"
+    r"(Member\[[\w,]+\]|ReturnValue|Instance|Subclass|Awaited|Fuzzy"
+    r"|Argument\[[\w:,.]+\]|Parameter\[[\w:,.]+\])"
 )
 Mark = tuple[str, int, tuple[str, ...]]
+Rows = set[tuple[str, ...]]
 
 
 @dataclass(frozen=True)
@@ -77,6 +79,9 @@ SUITES = {
                 "@modelcontextprotocol/sdk/server/index",
                 "@modelcontextprotocol/server",
                 "fastmcp",
+                "zod",
+                "zod/v3",
+                "zod/v4",
             }
         ),
     ),
@@ -84,9 +89,13 @@ SUITES = {
 suites = pytest.mark.parametrize("suite", SUITES.values(), ids=SUITES.keys())
 
 
-def model_rows(suite: Suite) -> tuple[set[tuple[str, str]], set[tuple[str, str, str]]]:
-    """The pack's source rows as (type, path) and its type rows as (type1, type2, path)."""
-    sources, types = set(), set()
+def model_rows(suite: Suite) -> tuple[Rows, Rows, Rows]:
+    """The rows of the pack: sources, types and summaries.
+
+    A source is (type, path), a type (type1, type2, path) and a summary, which carries taint
+    through a call, (type, path, input, output).
+    """
+    sources, types, summaries = set(), set(), set()
     for path in sorted((PACKS / suite.pack / "models").glob("*.model.yml")):
         for extension in yaml.safe_load(path.read_text(encoding="utf-8"))["extensions"]:
             target = extension["addsTo"]
@@ -97,16 +106,23 @@ def model_rows(suite: Suite) -> tuple[set[tuple[str, str]], set[tuple[str, str, 
                     start, access_path, kind = row
                     assert kind == "remote" and access_path, row
                     sources.add((start, access_path))
+                    paths = [access_path]
+                elif target["extensible"] == "summaryModel":
+                    start, access_path, taken, given, kind = row
+                    assert kind == "taint" and access_path, row
+                    summaries.add((start, access_path, taken, given))
+                    paths = [access_path, taken, given]
                 else:
                     assert target["extensible"] == "typeModel", path
                     type1, start, access_path = row
                     types.add((type1, start, access_path))
+                    paths = [access_path]
                 # the empty path of a typeModel row is the type itself
-                assert re.fullmatch(rf"({TOKEN}(\.{TOKEN})*)?", access_path), row
+                assert all(re.fullmatch(rf"({TOKEN}(\.{TOKEN})*)?", p) for p in paths), row
     names = {type1 for type1, _, _ in types}
-    starts = {start for start, _ in sources} | {start for _, start, _ in types}
+    starts = {row[0] for row in sources | summaries} | {start for _, start, _ in types}
     assert not [start for start in starts if not suite.knows(start, names)]  # every start is known
-    return sources, types
+    return sources, types, summaries
 
 
 @suites
@@ -119,11 +135,12 @@ def test_the_pack_declares_its_data_extensions(suite):
 
 @suites
 def test_every_model_row_has_a_fixture_handler(suite):
-    sources, types = model_rows(suite)
+    sources, types, summaries = model_rows(suite)
     assert sources and types
     # a typo in a row or in a marker breaks one of these equalities
     assert {groups for _, _, groups in suite.marks("model", 2)} == sources
     assert {groups for _, _, groups in suite.marks("type", 3)} == types
+    assert {groups for _, _, groups in suite.marks("summary", 4)} == summaries
 
 
 def test_javascript_package_names_with_a_dot_are_quoted():

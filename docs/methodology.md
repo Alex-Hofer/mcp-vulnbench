@@ -71,14 +71,17 @@ behavior are deliberate:
   `typescript/mcp/security`) instead of a registry ruleset that changes over time, and with
   `--timeout 0`, so no rule is cut off on a large file.
 - `codeql-mcp` is `codeql` plus the models in `models/codeql`, which mark MCP input as remote
-  sources. Nothing else differs.
+  sources. Nothing else differs. The models stop where the handler starts: they add no sinks and
+  know no project's code.
   - Python (`mcp`, `fastmcp`; frozen as `models-v1`): the parameters of tool, resource and prompt
     handlers; the HTTP headers that `fastmcp` hands to handlers; the bearer token that token
     verifiers and `get_access_token()` receive.
   - JavaScript and TypeScript (`@modelcontextprotocol/sdk` 1.x, `@modelcontextprotocol/server` 2.x,
     `fastmcp`): the arguments of tool, resource and prompt callbacks; the request a low-level
     request handler receives; the transport headers and the bearer token the SDK hands to a
-    callback.
+    callback. Four more rows carry taint through `zod` (`parse`, `safeParse` and their async
+    forms): a low-level handler gets raw arguments and validates them with a schema first, and
+    CodeQL, which has no model of zod, would lose the input at that call.
 - In-source suppressions and the analyzed project's tool configuration files are ignored for
   every tool (see [design.md](design.md#tool-configuration-policy)).
 
