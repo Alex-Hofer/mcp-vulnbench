@@ -62,8 +62,8 @@ found". A run whose tool exits 0 but writes no valid SARIF is an `error`, and so
 without any run, a run without a `results` list or with `executionSuccessful: false`. A run
 directory without `meta.json` counts as not run and is repeated; a finished run is reused only
 while the case commit, `subdir`, image and command are unchanged. Docker failures (exit codes
-125-127, missing images) stop the run without recording anything, and unavailable sources are
-retried on the next run. `run` and `bench` check the ground-truth locations before any container
+125-127, a docker client that is killed or cannot start, missing images) stop the run without
+recording anything, and unavailable sources are retried on the next run. `run` and `bench` check the ground-truth locations before any container
 starts, so a typo in `case.yaml` stops the run instead of turning into a missed detection.
 
 ## Harness security

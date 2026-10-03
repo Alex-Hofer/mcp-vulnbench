@@ -306,7 +306,10 @@ def test_run_stops_on_docker_infrastructure_errors(monkeypatch, toy_cases_dir, t
     assert len(runner.calls) == 1  # stops at the first failure
 
 
-@pytest.mark.parametrize("exit_code", [125, 126, 127])
+# 125 to 127 are Docker's own failures. A container exits with 0 to 255, so anything else is the
+# docker client dying: killed by a signal (negative) or, on Windows, not even starting
+# (0xC0000142, as seen in a bench process that had lost its console).
+@pytest.mark.parametrize("exit_code", [125, 126, 127, -9, 0xC0000142])
 def test_infrastructure_errors_are_not_recorded(bandit, case, tmp_path, exit_code):
     results = tmp_path / "results"
     with pytest.raises(InfrastructureError):

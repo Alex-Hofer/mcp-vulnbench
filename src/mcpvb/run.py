@@ -28,6 +28,17 @@ class InfrastructureError(Exception):
     """Docker could not run the analyzer at all; nothing is recorded, so the run is repeated."""
 
 
+def is_infrastructure_failure(exit_code: int | None) -> bool:
+    """Whether Docker failed rather than the analyzer.
+
+    A container exits with 0 to 255. Any other code comes from the docker client itself: killed
+    by a signal (negative) or, on Windows, an NTSTATUS such as 0xC0000142 when it cannot start.
+    """
+    if exit_code is None:  # timeout
+        return False
+    return exit_code in INFRASTRUCTURE_EXIT_CODES or not 0 <= exit_code <= 255
+
+
 class Status(StrEnum):
     OK = "ok"
     ERROR = "error"
@@ -137,7 +148,7 @@ def run_one(
         result = runner(
             variant.image, variant.render_command(case.language), src, tool_out, variant.timeout_s
         )
-        if result.exit_code in INFRASTRUCTURE_EXIT_CODES:
+        if is_infrastructure_failure(result.exit_code):
             detail = result.output.strip()[-300:]
             raise InfrastructureError(
                 f"{variant.name} {case.id} {version}: docker exit code {result.exit_code}: {detail}"
