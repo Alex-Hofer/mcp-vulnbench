@@ -29,10 +29,11 @@ differs. Bandit analyzes Python only.
 
 ![Recall per variant](docs/results-v0.5.0.svg)
 
-The models are written on a development half of the cases and frozen before the other half is
-measured: tag `models-v1` for Python, `models-v2` for TypeScript and JavaScript (the
-[methodology](docs/methodology.md#development-and-test-split) explains the split). The test
-halves are the fair comparison; on both together `codeql` finds 3 of 37 cases and `codeql-mcp` 23.
+The models are developed against a development half of the cases and frozen before they run on
+the other half: tag `models-v1` for Python, `models-v2` for TypeScript and JavaScript. The
+[methodology](docs/methodology.md#development-and-test-split) gives the exact order, including
+what the author had read of the test cases while curating them. The test halves are the fair
+comparison; on both together `codeql` finds 3 of 37 cases and `codeql-mcp` 23.
 
 | Variant | Language | Half | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC |
 |---|---|---|---:|---:|---:|---:|---:|
@@ -60,7 +61,10 @@ halves are the fair comparison; on both together `codeql` finds 3 of 37 cases an
   models found 9 of the 17 development cases. In two more the input was lost at
   `Schema.parse(args)`, because CodeQL has no model of zod, the library the SDK's schemas are
   written in. Four rows that carry taint through `parse` and `safeParse` bring the development
-  half to 11 of 17; they were frozen with the rest.
+  half to 11 of 17; they were frozen with the rest. These rows are not specific to MCP, so their
+  share is reported separately: on the test half the source rows alone find 11 of 21 cases, and
+  3 of the 14 need the zod rows as well (mcpvb-0031, 0045, 0064; measured after the freeze with
+  the first version of the pack).
 - These rows have a gap that only the test half showed. `js/path-injection` is a data-flow query
   with its own flow states and does not follow a summary of kind `taint`, so a path that went
   through `parse` is still lost (mcpvb-0054). A probe confirms that the same rows with kind
@@ -81,8 +85,11 @@ halves are the fair comparison; on both together `codeql` finds 3 of 37 cases an
   sink. Where a fix validates with a helper of the project, the alert stays.
 - Semgrep's default rules find 7 of the 38 cases: command injections through
   `detect-child-process`, path traversals through audit rules that flag every non-literal file
-  name. The MCP rules add two SSRF cases that no other variant finds (mcpvb-0061, 0062, both
-  Playwright requests), at the price of 904 `mcp-ssrf-typescript` findings on the 38 servers.
+  name. Those rules only match `fs` imported without the `node:` prefix: Semgrep finds the four
+  path traversals whose code imports `fs` and misses the three that import it with the prefix,
+  and on a two-file probe the same line is reported without the prefix and not with it. The MCP
+  rules add two SSRF cases that no other variant finds (mcpvb-0061, 0062, both Playwright
+  requests), at the price of 904 `mcp-ssrf-typescript` findings on the 38 servers.
 
 ### Python (unchanged since v0.2.0)
 
@@ -130,8 +137,13 @@ v0.2.0.
   two of the three SQL-injection cases (mcpvb-0011, mcpvb-0012) share a commit pair and their sink
   function, so one finding there counts for both.
 - Detection is decided per function: a finding of the case's class inside a ground-truth function
-  counts, also when it reports another flow into the same sink, as the six TypeScript detections
-  of plain CodeQL do.
+  counts, also when it reports another flow into the same sink, as the six TypeScript and
+  JavaScript detections of plain CodeQL do.
+- Some cases are not independent: mcpvb-0057 and 0058 are two advisories for the same function of
+  one server, and the fixed commit of mcpvb-0062 is the vulnerable commit of mcpvb-0061.
+- For TypeScript and JavaScript the line count still includes test files that sit next to the
+  code (`__tests__`, `*.test.ts`). Without them `codeql-mcp` would stand at 2.85 instead of 2.62
+  alarms per KLOC on the test half and at 1.61 instead of 1.23 on the development half.
 - In 14 cases the fixed version is not clean: it keeps a weakness of the same class that was
   fixed later or is intended, or the location is too coarse to tell tools apart. The report marks
   them and gives fix recognition also without them (`codeql-mcp`: 14 of 29 instead of 19 of 38).
@@ -156,6 +168,9 @@ uv run mcpvb images          # builds the analyzer images locally (never pushed)
 uv run mcpvb bench           # fetch -> run -> score -> report
 # the report is written to results/latest/report.md
 ```
+
+Build the images again after every update of the checkout: they carry the rules and models of the
+version they were built from.
 
 ## Documentation
 

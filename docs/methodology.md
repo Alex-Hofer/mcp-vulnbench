@@ -36,23 +36,37 @@ from one. A later change to the models gets a new tag, and the results name the 
 measured with. The report shows both halves, overall and per language group: Python on one side,
 JavaScript and TypeScript together on the other, since they share analyzers, rules and models.
 
+What "held out" means here, in the order things happened for the TypeScript and JavaScript cases:
+1. The source rows were written from the SDK documentation and checked against a fixture server.
+2. The cases were curated, and every draft was reviewed before the halves were assigned. The
+   author of the models has therefore read code of cases that later fell into the test half.
+3. The split was committed.
+4. The development half was measured. Its misses led to one change, the rows for zod.
+5. The pack was frozen as `models-v2`, and only then did `codeql-mcp` run on a test case.
+
+The test half is held out from the models and from every measurement that shaped them, not from
+their author's eyes. What guards against tuning is that no row refers to a project's code: the
+rows name only the SDKs and zod.
+
 ## Metrics (per variant: overall, per class, per language and per half)
 - **Recall** = detected cases / cases whose vulnerable run is `ok`.
 - **Fix recognition** = detected cases without a persisting finding / detected cases whose fixed
   run is `ok`. A finding *persists* if it has the case's class and lies inside a fixed location.
   Some fixed versions are not clean: the fix leaves a weakness of the same class behind, or the
   location is so large that it holds other tools as well. The notes of such a case say so in a
-  sentence that starts with `Caveat:` ([curation.md](curation.md#fixes-that-leave-something-behind)),
-  the report marks the case with †, and its details table gives fix recognition a second time
-  without these cases.
+  sentence that starts with `Caveat:` (see
+  [curation.md](curation.md#fixes-that-leave-something-behind)), the report marks the case with †,
+  and its details table gives fix recognition a second time without these cases.
 - **Alarms per KLOC** = classified findings (class among the five in scope) on the vulnerable
   versions of `ok` cases / KLOC of those versions. KLOC counts non-blank lines of the case language
-  (JavaScript and TypeScript files alike for a case in either language) without `test`, `tests`, `node_modules`, `vendor`, `third_party`, `dist`, `build`, virtualenvs
-  and `__pycache__`; findings in files of other languages (for example workflow YAML or a web
-  frontend) or inside those folders are not counted either, so numerator and denominator cover the
-  same code. A case whose sources are unavailable when scoring has no line count and is left out
-  of the alarm figures (with a warning). The median alarms per case is the median of the same
-  count over the same cases. Unclassified findings (same scope) are counted separately.
+  (JavaScript and TypeScript files alike for a case in either language) without `test`, `tests`,
+  `node_modules`, `vendor`, `third_party`, `dist`, `build`, virtualenvs and `__pycache__`;
+  findings in files of other languages (for example workflow YAML or a web frontend) or inside
+  those folders are not counted either, so numerator and denominator cover the same code. Test
+  files that sit next to the code (`__tests__`, `*.test.ts`) are not excluded yet. A case whose
+  sources are unavailable when scoring has no line count and is left out of the alarm figures
+  (with a warning). The median alarms per case is the median of the same count over the same
+  cases. Unclassified findings (same scope) are counted separately.
 - **Error rate** = runs with a status other than `ok` / all runs, without `unsupported` runs (a
   tool that does not support a language is not failing).
 
@@ -76,17 +90,20 @@ behavior are deliberate:
   `typescript/mcp/security`) instead of a registry ruleset that changes over time, and with
   `--timeout 0`, so no rule is cut off on a large file.
 - `codeql-mcp` is `codeql` plus the models in `models/codeql`, which mark MCP input as remote
-  sources. Nothing else differs. The models stop where the handler starts: they add no sinks and
-  know no project's code.
+  sources. Nothing else differs. The rows for the SDKs stop where the handler starts: they add no
+  sinks and know no project's code.
   - Python (`mcp`, `fastmcp`; frozen as `models-v1`): the parameters of tool, resource and prompt
     handlers; the HTTP headers that `fastmcp` hands to handlers; the bearer token that token
     verifiers and `get_access_token()` receive.
   - JavaScript and TypeScript (`@modelcontextprotocol/sdk` 1.x, `@modelcontextprotocol/server` 2.x,
     `fastmcp`; frozen as `models-v2`, which leaves the Python rows as they were): the arguments
     of tool, resource and prompt callbacks; the request a low-level request handler receives;
-    the transport headers and the bearer token the SDK hands to a callback. Four more rows carry taint through `zod` (`parse`, `safeParse` and their async
-    forms): a low-level handler gets raw arguments and validates them with a schema first, and
-    CodeQL, which has no model of zod, would lose the input at that call.
+    the transport headers and the bearer token the SDK hands to a callback.
+  - Four more rows in the same pack carry taint through `zod` (`parse`, `safeParse` and their
+    async forms): a low-level handler gets raw arguments and validates them with a schema first,
+    and CodeQL, which has no model of zod, would lose the input at that call. These rows are not
+    specific to MCP. They apply to every zod parse, whatever its input, and the results say which
+    share of the detections depends on them.
 - In-source suppressions and the analyzed project's tool configuration files are ignored for
   every tool (see [design.md](design.md#tool-configuration-policy)).
 
