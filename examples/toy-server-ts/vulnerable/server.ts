@@ -1,6 +1,6 @@
 // Toy MCP server with two deliberately vulnerable tools (test fixture of mcp-vulnbench).
-import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { execSync } from "child_process";
+import { readFileSync } from "fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";

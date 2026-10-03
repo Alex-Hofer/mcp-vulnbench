@@ -12,6 +12,7 @@ from mcpvb import docker
 from mcpvb.cli import app
 from mcpvb.docker import ContainerResult
 from mcpvb.fetch import fetch_case
+from mcpvb.normalize import parse_sarif
 from mcpvb.run import (
     InfrastructureError,
     Status,
@@ -185,6 +186,12 @@ def test_real_tool_run_on_typescript_toy_case(name, toy_ts_cases_dir, tmp_path):
         status = run_one(variant, case, version, src, results, docker.run_container)
         log = (run_dir(results, name, case.id, version) / "log.txt").read_text(encoding="utf-8")
         assert status is Status.OK, log
+        if variant.tool == "semgrep" and version == "vulnerable":
+            # an image built before the JavaScript and TypeScript rules were added ends ok too,
+            # but without a finding
+            raw = raw_path(results, name, case.id, version)
+            found = parse_sarif(raw, name, case.id, version)
+            assert any(finding.file == "server.ts" for finding in found), log
 
 
 def minimized_sarif(raw: Path) -> str:

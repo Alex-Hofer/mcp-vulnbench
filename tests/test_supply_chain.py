@@ -1,6 +1,7 @@
+import re
 from pathlib import Path
 
-from mcpvb.tools import load_variants
+from mcpvb.tools import load_variant, load_variants
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DOCKER = REPO_ROOT / "docker"
@@ -65,3 +66,17 @@ def test_semgrep_rules_cover_javascript_and_typescript_and_keep_mcp_rules_apart(
     assert "typescript/mcp/*) continue" in default_loop  # MCP rules belong to semgrep-mcp only
     mcp_loop = next(line for line in semgrep.splitlines() if "/rules/mcp/$dir" in line)
     assert "ai/ai-best-practices/mcp-*" in mcp_loop and "typescript/mcp/security" in mcp_loop
+
+
+def test_the_semgrep_image_tag_names_the_rule_set():
+    # The tag is the only thing that tells an image built before a rule set changed from one
+    # built after it: with an old image a TypeScript run would end ok without a single rule.
+    semgrep = dockerfile("semgrep")
+    commit = re.search(r"ARG RULES_COMMIT=(\w+)", semgrep).group(1)
+    default_loop = next(line for line in semgrep.splitlines() if "/rules/default/$dir" in line)
+    languages = re.findall(r"(\w+)/\*/security", default_loop)
+    short = {"python": "py", "javascript": "js", "typescript": "ts"}
+    expected = f"rules-{commit[:7]}-" + "-".join(short[language] for language in languages)
+    for name in ("semgrep-default", "semgrep-mcp"):
+        image = load_variant(REPO_ROOT / "tools" / name / "tool.yaml").image
+        assert image.endswith(expected), (name, image, expected)

@@ -2,7 +2,7 @@
 name: semgrep-default
 tool: semgrep
 version: "1.178.0"
-image: mcpvb/semgrep:1.178.0-rules-a84ff9c
+image: mcpvb/semgrep:1.178.0-rules-a84ff9c-py-js-ts
 dockerfile: docker/semgrep
 languages: [python, typescript, javascript]
 command: [semgrep, scan, --config, /rules/default, --sarif, --output, "{out}/raw.sarif", --metrics, "off", --disable-version-check, --disable-nosem, --timeout, "0", "{src}"]

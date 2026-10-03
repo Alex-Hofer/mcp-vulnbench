@@ -1,7 +1,7 @@
 // Toy MCP server, fixed version (test fixture of mcp-vulnbench).
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import path from "node:path";
+import { execFileSync } from "child_process";
+import { readFileSync } from "fs";
+import path from "path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
