@@ -17,6 +17,12 @@ def test_repository_variants_load():
     assert variants["semgrep-default"].image == variants["semgrep-mcp"].image
 
 
+def test_semgrep_and_codeql_cover_all_three_languages():
+    variants = {variant.name: variant for variant in load_variants(TOOLS)}
+    for name in ("semgrep-default", "semgrep-mcp", "codeql"):
+        assert all(variants[name].supports(language) for language in Language), name
+
+
 def test_render_command_fills_placeholders():
     codeql = load_variant(TOOLS / "codeql" / "tool.yaml")
     assert codeql.render_command(Language.TYPESCRIPT) == [

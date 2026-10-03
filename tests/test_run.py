@@ -171,6 +171,22 @@ def test_real_tool_run_on_toy_case(name, toy_cases_dir, tmp_path):
             fixture.write_text(minimized_sarif(raw), encoding="utf-8")
 
 
+@pytest.mark.docker
+@pytest.mark.parametrize("name", ["semgrep-default", "semgrep-mcp", "codeql"])
+def test_real_tool_run_on_typescript_toy_case(name, toy_ts_cases_dir, tmp_path):
+    variant = load_variant(REPO_ROOT / "tools" / name / "tool.yaml")
+    if not docker.image_id(variant.image):
+        pytest.skip(f"image {variant.image} not built: uv run mcpvb images --variant {name}")
+    case = load_cases(toy_ts_cases_dir, ["mcpvb-9003"])[0]
+    sources = fetch_case(case, tmp_path / "cache")
+    results = tmp_path / "results"
+    for version in ("vulnerable", "fixed"):
+        src = sources.for_version(version)
+        status = run_one(variant, case, version, src, results, docker.run_container)
+        log = (run_dir(results, name, case.id, version) / "log.txt").read_text(encoding="utf-8")
+        assert status is Status.OK, log
+
+
 def minimized_sarif(raw: Path) -> str:
     """Results plus the rules they use (id and tags only).
 

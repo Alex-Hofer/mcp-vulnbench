@@ -18,5 +18,18 @@ RUN apt-get update \
  && rm /tmp/codeql.tar.gz \
  && chmod -R a+rX /opt/codeql \
  && ln -s /opt/codeql/codeql /usr/local/bin/codeql
+
+# CodeQL's TypeScript extractor needs Node.js. The checksum is published in
+# https://nodejs.org/dist/v<version>/SHASUMS256.txt: change both together.
+ARG NODE_VERSION=22.23.3
+ARG NODE_SHA256=1084aa36196bba4c3a5e69a1ee388a6e4ff729dad09445fbcd434b28fe3c24af
+RUN curl -fsSL -o /tmp/node.tar.gz \
+    "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz" \
+ && echo "${NODE_SHA256}  /tmp/node.tar.gz" | sha256sum -c - \
+ && mkdir -p /opt/node \
+ && tar -xzf /tmp/node.tar.gz --no-same-owner --strip-components=1 -C /opt/node \
+ && rm /tmp/node.tar.gz \
+ && chmod -R a+rX /opt/node \
+ && ln -s /opt/node/bin/node /usr/local/bin/node
 COPY run-codeql.sh /usr/local/bin/run-codeql.sh
 RUN chmod 0755 /usr/local/bin/run-codeql.sh

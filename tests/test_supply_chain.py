@@ -48,3 +48,20 @@ def test_codeql_mcp_refuses_a_base_that_ignores_analyze_options():
     script = (DOCKER / "codeql" / "run-codeql.sh").read_text(encoding="utf-8")
     assert "grep -q 'shift 3' /usr/local/bin/run-codeql.sh" in dockerfile
     assert "shift 3" in script and '"$@"' in script  # the marker the check relies on
+
+
+def test_node_for_the_typescript_extractor_is_pinned_and_verified():
+    codeql = dockerfile("codeql")
+    assert "ARG NODE_VERSION=" in codeql and "ARG NODE_SHA256=" in codeql
+    assert "node-v${NODE_VERSION}-linux-x64.tar.gz" in codeql
+    assert '"${NODE_SHA256}  /tmp/node.tar.gz" | sha256sum -c -' in codeql
+
+
+def test_semgrep_rules_cover_javascript_and_typescript_and_keep_mcp_rules_apart():
+    semgrep = dockerfile("semgrep")
+    default_loop = next(line for line in semgrep.splitlines() if "/rules/default/$dir" in line)
+    for rules in ("python/*/security", "javascript/*/security", "typescript/*/security"):
+        assert rules in default_loop, rules
+    assert "typescript/mcp/*) continue" in default_loop  # MCP rules belong to semgrep-mcp only
+    mcp_loop = next(line for line in semgrep.splitlines() if "/rules/mcp/$dir" in line)
+    assert "ai/ai-best-practices/mcp-*" in mcp_loop and "typescript/mcp/security" in mcp_loop

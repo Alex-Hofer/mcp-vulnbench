@@ -13,8 +13,8 @@ RUN set -eu; \
     mkdir -p /tmp/sr /rules/default /rules/mcp; \
     tar -xzf /tmp/semgrep-rules.tar.gz -C /tmp/sr; \
     cd "/tmp/sr/semgrep-rules-${RULES_COMMIT}"; \
-    for dir in python/*/security; do mkdir -p "/rules/default/$dir"; cp -R "$dir/." "/rules/default/$dir/"; done; \
-    for dir in ai/ai-best-practices/mcp-*; do mkdir -p "/rules/mcp/$dir"; cp -R "$dir/." "/rules/mcp/$dir/"; done; \
+    for dir in python/*/security javascript/*/security typescript/*/security; do case "$dir" in typescript/mcp/*) continue;; esac; mkdir -p "/rules/default/$dir"; cp -R "$dir/." "/rules/default/$dir/"; done; \
+    for dir in ai/ai-best-practices/mcp-* typescript/mcp/security; do mkdir -p "/rules/mcp/$dir"; cp -R "$dir/." "/rules/mcp/$dir/"; done; \
     find /rules -type f ! -name '*.yaml' ! -name '*.yml' -delete; \
     rm -rf /tmp/sr /tmp/semgrep-rules.tar.gz; \
     chmod -R a+rX /rules
