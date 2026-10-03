@@ -20,7 +20,7 @@ benchmark measures what actually finds these bugs.
 - Taint-style bugs in MCP server code, five classes: `command-injection` (CWE-78, CWE-88),
   `path-traversal` (CWE-22, CWE-59), `ssrf` (CWE-918), `sql-injection` (CWE-89),
   `code-injection` (CWE-94, CWE-95).
-- Languages: Python, then TypeScript/JavaScript.
+- Languages: Python, TypeScript and JavaScript.
 - Analyzers: Semgrep CE (security rules, and a variant with the official MCP rules), CodeQL
   (security-extended), Bandit.
 - Out of scope: tool poisoning and other prompt-level attacks, MCP clients, live third-party
@@ -45,6 +45,7 @@ ground truth (case.yaml) ─► score ─► metrics.json ─► report ─► r
 | `schema.py` | Case model, loading, cross-case checks (OSI license, at most 3 cases per repository) |
 | `split.py` | Development and test half: whole repositories per half, balanced by language and class ([methodology](methodology.md#development-and-test-split)) |
 | `fetch.py` | Export both commits of a case into `.cache/` via `git archive`; check ground-truth locations |
+| `curate.py` | Function ranges of a source file, for `mcpvb functions` and the location check: `ast` for Python, tree-sitter for TypeScript and JavaScript |
 | `fsutil.py` | Delete the harness's own folders, also where Windows marks entries read-only |
 | `tools.py` | Tool variant: pinned image, command template, supported languages, CWE overrides, `base_image`, `frozen_at` |
 | `docker.py` | Thin wrapper around the docker CLI: preflight, build, run with limits |
@@ -52,7 +53,7 @@ ground truth (case.yaml) ─► score ─► metrics.json ─► report ─► r
 | `normalize.py` | One SARIF 2.1.0 parser for all tools; CWE from overrides, rule tags or result properties |
 | `score.py` | Matching against the ground truth and the metrics in [methodology.md](methodology.md) |
 | `report.py` | Markdown tables and a static SVG chart |
-| `models/codeql/` | MCP source models (Models-as-Data) and the image of the `codeql-mcp` variant |
+| `models/codeql/` | MCP models (Models-as-Data), one pack per CodeQL language, and the image of the `codeql-mcp` variant |
 
 ## Error handling
 
