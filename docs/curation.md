@@ -24,6 +24,14 @@ of an outgoing HTTP request); then the case uses the sink's CWE and `notes` reco
 CWE and the reason. Matching a tool's finding against the wrong class would otherwise hide a real
 detection.
 
+## Fixes that leave something behind
+Some fixes close the reported hole and leave a weakness of the same class in the same function: an
+option injection that is fixed in a later release, a guard that is only active with a setting, a
+transport for which the behavior is intended. Such a case stays in the benchmark, because the
+vulnerable version is unaffected, and `notes` gets a sentence that starts with `Caveat:` and says
+what remains. A finding that persists in the fixed version of such a case is not necessarily a
+missed fix; the results document says how many cases carry a caveat.
+
 ## Steps
 1. Read the advisory:
    `gh api /advisories/<GHSA-id> --jq '{summary, cve_id, cwes: [.cwes[].cwe_id], vulnerabilities, references}'`
@@ -32,13 +40,27 @@ detection.
    For a single-commit fix the vulnerable commit is its parent:
    `git -C .cache/curate/<name> rev-parse <fix>^`. For squashed or multi-commit fixes take the last
    commit before the fix.
-4. Get the function ranges of the affected file in both versions:
+4. Get the function ranges of the affected file in both versions (keep the file's suffix):
    `git -C .cache/curate/<name> show <sha>:<path> > .cache/curate/snippet.py`
    `uv run mcpvb functions .cache/curate/snippet.py`
    A location covers a function from its first decorator line to its last line. List the functions
    on the vulnerable path that the fix changed plus the function containing the sink reached from
-   the MCP tool, even if unchanged (at most four); the fixed version lists the same functions.
+   the MCP tool, even if unchanged (at most four); the fixed version lists the same functions, and
+   a function the fix added may be listed there if it now holds the sink.
+   A function that dispatches all tools of a server (a request handler with a switch over the tool
+   names) is listed only if it contains the sink itself: a location that large would also credit
+   findings that belong to other tools.
    In monorepos set `subdir` to the server folder; `file` is then relative to `subdir`.
+
+   TypeScript and JavaScript:
+   - `language` follows the file with the sink: `typescript` for `.ts`, `.tsx`, `.mts`, `.cts`,
+     `javascript` for `.js`, `.jsx`, `.mjs`, `.cjs`.
+   - Locations are in the maintained source, never in compiled output such as `dist/`.
+   - `mcpvb functions` lists declarations, methods (`Class.method`) and functions assigned to a
+     variable, property or class field by name. A callback without a name, such as the handler
+     passed inline to `server.tool("read_file", ...)`, is listed as `<anonymous>`: write
+     `function: "<anonymous> tool read_file"` with exactly that range. The text after
+     `<anonymous>` is a hint for readers.
 5. Write `cases/mcpvb-NNNN/case.yaml` (template below, `split: null`), then run
    `uv run mcpvb split`, `uv run mcpvb validate` and `uv run mcpvb fetch --case mcpvb-NNNN`.
 6. Commit one case per commit: `data: add mcpvb-NNNN (CVE-...)`.
@@ -50,7 +72,7 @@ title: "Command injection in <tool> of <server>"
 advisories: [CVE-YYYY-NNNNN, GHSA-xxxx-xxxx-xxxx]
 repo: https://github.com/<owner>/<repo>
 license: MIT
-language: python
+language: python        # python | typescript | javascript
 subdir: null
 class: command-injection
 cwe: CWE-78

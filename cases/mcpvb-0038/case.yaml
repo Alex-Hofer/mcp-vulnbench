@@ -1,0 +1,23 @@
+id: mcpvb-0038
+title: "Command injection in get_figma_data of Figma-Context-MCP"
+advisories: [CVE-2025-53967, GHSA-gxw4-4fc5-9gr5]
+repo: https://github.com/GLips/Figma-Context-MCP
+license: MIT
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: get_figma_data
+vulnerable:
+  commit: 5b0d10e76eafafe972dddc40bfb601b50d5953f0
+  locations:
+    - {file: src/mcp/tools/get-figma-data-tool.ts, function: getFigmaData, lines: [32, 90]}
+    - {file: src/utils/fetch-with-retry.ts, function: fetchWithRetry, lines: [16, 81]}
+fixed:
+  commit: 7f4b5859454b0567c2121ff22c69a0344680b124
+  locations:
+    - {file: src/mcp/tools/get-figma-data-tool.ts, function: getFigmaData, lines: [37, 98]}
+    - {file: src/utils/fetch-with-retry.ts, function: fetchWithRetry, lines: [16, 81]}
+source: ghsa
+split: null
+notes: "The fileKey and nodeId arguments of get_figma_data are placed by getFigmaData and FigmaService.getRawFile/getRawNode into the Figma API URL; when fetch fails (for example with a 404), fetchWithRetry falls back to a 'curl ... \"<url>\"' command string run with child_process.exec, so a fileKey such as $(id>/tmp/x) executes shell commands. The fix runs curl with execFile and an argument array and validates fileKey and nodeId with regular expressions in the tool schema and handler. Fixed commit is the squash commit of PR #246 on main. Fix: https://github.com/GLips/Figma-Context-MCP/commit/7f4b5859454b0567c2121ff22c69a0344680b124 The advisory lists CWE-77, but the sink is an OS command string, so the case uses CWE-78."

@@ -1,0 +1,27 @@
+id: mcpvb-0052
+title: "Arbitrary file write in browser_download and browser_save_state of browse-mcp"
+advisories: [CVE-2026-55557, GHSA-m9mq-7m7q-xc6p]
+repo: https://github.com/That1Drifter/browse-mcp
+license: MIT
+language: typescript
+subdir: null
+class: path-traversal
+cwe: CWE-22
+mcp_tool: browser_download
+vulnerable:
+  commit: b106ffe0fcf2c46b9a23bfefd990ef8618dcc0c2
+  locations:
+    - {file: src/download.ts, function: downloadUrl, lines: [24, 79]}
+    - {file: src/download.ts, function: fetchFallback, lines: [81, 110]}
+    - {file: src/state.ts, function: resolveStatePath, lines: [12, 21]}
+    - {file: src/tools/session.ts, function: browser_save_state, lines: [221, 231]}
+fixed:
+  commit: 5352a4a56f626254b445bfa07e4bb48c5aad15c1
+  locations:
+    - {file: src/download.ts, function: downloadUrl, lines: [26, 96]}
+    - {file: src/download.ts, function: fetchFallback, lines: [98, 127]}
+    - {file: src/state.ts, function: resolveStatePath, lines: [13, 26]}
+    - {file: src/tools/session.ts, function: browser_save_state, lines: [230, 240]}
+source: ghsa
+split: null
+notes: "The save_dir argument of the browser_download tool is used unchecked by downloadUrl as the destination directory for mkdirSync and download.saveAs and, with force_fetch, for writeFileSync in fetchFallback (sinks); the path argument of browser_save_state/browser_load_state is returned unchanged by resolveStatePath and then written or read by the handlers in src/tools/session.ts. The fix confines both values with the new confineToDir (src/pathSafe.ts) to ~/.browse-mcp/downloads and ~/.browse-mcp/state and reduces download filenames to a basename. Fix: https://github.com/That1Drifter/browse-mcp/pull/58 (squash commit 5352a4a56f626254b445bfa07e4bb48c5aad15c1)"

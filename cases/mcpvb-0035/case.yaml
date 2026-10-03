@@ -1,0 +1,23 @@
+id: mcpvb-0035
+title: "Command injection in cache-view of magento2-dev-mcp"
+advisories: [CVE-2026-5603, GHSA-xqv9-qr76-hfq2]
+repo: https://github.com/elgentos/magento2-dev-mcp
+license: MIT
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: cache-view
+vulnerable:
+  commit: 8e4561b1dc6784cdca84172272df4e6adc355d1f
+  locations:
+    - {file: src/index.ts, function: "<anonymous> tool cache-view", lines: [385, 406]}
+    - {file: src/index.ts, function: executeMagerun2Command, lines: [37, 120]}
+fixed:
+  commit: aa1ffcc0aea1b212c69787391783af27df15ae9d
+  locations:
+    - {file: src/index.ts, function: "<anonymous> tool cache-view", lines: [393, 415]}
+    - {file: src/index.ts, function: executeMagerun2Command, lines: [41, 134]}
+source: ghsa
+split: null
+notes: "The cache-view tool built the string `cache:view --type=${type} \"${key}\"` from its key and type arguments and passed it to executeMagerun2Command, which appended it to the magerun2 binary name and ran it with child_process.exec; most other tools of the server built their subcommands the same way. The fix makes every tool pass an argument array, which executeMagerun2Command runs with execFile (or quotes with shellQuote for the Docker wrapper commands). Fix: https://github.com/elgentos/magento2-dev-mcp/pull/5 (merge commit aa1ffcc0aea1b212c69787391783af27df15ae9d, two commits; vulnerable is the first parent of the merge) The advisory lists CWE-77, but the sink is an OS command string, so the case uses CWE-78. Caveat: on its Docker path the fixed executeMagerun2Command still calls exec with a command string whose arguments are quoted by shellQuote, so a command-injection finding there is not necessarily a missed fix."

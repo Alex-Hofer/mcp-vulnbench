@@ -1,0 +1,22 @@
+id: mcpvb-0039
+title: "Command injection in ui_tap of ios-simulator-mcp"
+advisories: [CVE-2025-52573, GHSA-6f6r-m9pv-67jw]
+repo: https://github.com/joshuayoes/ios-simulator-mcp
+license: MIT
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: ui_tap
+vulnerable:
+  commit: 042fdb758e0db8874ed2ca7a5ea125dfc412f4d9
+  locations:
+    - {file: src/index.ts, function: "<anonymous> tool ui_tap", lines: [178, 205]}
+fixed:
+  commit: eb53a4f2cc8bbeb13e8d6d930f00167befcdb809
+  locations:
+    - {file: src/index.ts, function: "<anonymous> tool ui_tap", lines: [212, 250]}
+    - {file: src/index.ts, function: run, lines: [25, 34]}
+source: ghsa
+split: null
+notes: "The handler of the ui_tap tool interpolated its duration and udid string arguments into an 'idb ui tap ...' command string run with child_process.exec, so shell metacharacters such as ';' execute commands; the handlers of ui_type, ui_describe_all, ui_swipe, ui_describe_point and screenshot had the same pattern. The fix adds regular-expression validation to the tool schemas and runs the commands through the new helper run(), which uses execFile with an argument array and a '--' separator. Fixed commit is the merge commit from the advisory's private fork on main. Fix: https://github.com/joshuayoes/ios-simulator-mcp/commit/eb53a4f2cc8bbeb13e8d6d930f00167befcdb809"

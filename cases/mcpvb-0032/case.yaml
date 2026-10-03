@@ -1,0 +1,21 @@
+id: mcpvb-0032
+title: "Command injection via projectPath in the scene tools of godot-mcp"
+advisories: [CVE-2026-25546, GHSA-8jx2-rhfh-q928]
+repo: https://github.com/Coding-Solo/godot-mcp
+license: MIT
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: create_scene
+vulnerable:
+  commit: 90b907a472e343eb3807a49cb13f82e4c7b12731
+  locations:
+    - {file: src/index.ts, function: GodotServer.executeOperation, lines: [475, 543]}
+fixed:
+  commit: 21c785d923cfdb471ea60323c13807d62dfecc5a
+  locations:
+    - {file: src/index.ts, function: GodotServer.executeOperation, lines: [474, 533]}
+source: ghsa
+split: null
+notes: "The projectPath argument of create_scene (also add_node, load_sprite, export_mesh_library, save_scene, get_uid, update_project_uids) is passed by the tool handlers to GodotServer.executeOperation, which placed it in double quotes inside a command string run with child_process.exec, so shell metacharacters such as $(...) in the path execute commands (the handlers only require that the directory exists and contains project.godot). The fix runs Godot with execFile and an argument array. Fixed commit is the merge commit of PR #67 on main. Fix: https://github.com/Coding-Solo/godot-mcp/pull/67"

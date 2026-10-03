@@ -1,0 +1,25 @@
+id: mcpvb-0048
+title: "Symlink following in the workspace-roots check of chrome-devtools-mcp"
+advisories: [CVE-2026-53766, GHSA-8qf9-62x2-82pp]
+repo: https://github.com/ChromeDevTools/chrome-devtools-mcp
+license: Apache-2.0
+language: typescript
+subdir: null
+class: path-traversal
+cwe: CWE-59
+mcp_tool: take_screenshot
+vulnerable:
+  commit: 2eab50938093e848ca9786f2ce0c5bf371e63619
+  locations:
+    - {file: src/tools/screenshot.ts, function: handler, lines: [54, 110]}
+    - {file: src/McpContext.ts, function: McpContext.validatePath, lines: [178, 199]}
+    - {file: src/McpContext.ts, function: McpContext.saveFile, lines: [720, 738]}
+fixed:
+  commit: 176eb695137d9c46a61e2d4d5571880c5145cf46
+  locations:
+    - {file: src/tools/screenshot.ts, function: handler, lines: [54, 110]}
+    - {file: src/McpContext.ts, function: McpContext.validatePath, lines: [183, 235]}
+    - {file: src/McpContext.ts, function: McpContext.saveFile, lines: [756, 774]}
+source: ghsa
+split: null
+notes: "The filePath argument of take_screenshot (and of the other filePath tools such as upload_file, take_snapshot, take_heapsnapshot) is checked by McpContext.validatePath against the client's workspace roots with path.resolve only, so a symlink inside a root that points outside passes and McpContext.saveFile follows it in fs.mkdir/fs.writeFile (sink). The fix makes validatePath async and compares fs.realpath-canonicalized paths (new helper resolveCanonicalPath in src/utils/files.ts) against the canonicalized roots; all callers now await it. Fix: https://github.com/ChromeDevTools/chrome-devtools-mcp/pull/2127 (squash commit 176eb695137d9c46a61e2d4d5571880c5145cf46)"

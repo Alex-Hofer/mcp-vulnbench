@@ -1,0 +1,24 @@
+id: mcpvb-0044
+title: "Command injection in inspect_ui of adb-mcp"
+advisories: [CVE-2025-59834, GHSA-54j7-grvr-9xwg]
+repo: https://github.com/srmorete/adb-mcp
+license: MIT
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: inspect_ui
+vulnerable:
+  commit: d7e6cf007a590be44a6d812c55314d2876595644
+  locations:
+    - {file: src/index.ts, function: "<anonymous> tool inspect_ui", lines: [351, 400]}
+    - {file: src/index.ts, function: formatDeviceArg, lines: [263, 265]}
+fixed:
+  commit: 041729c0b25432df3199ff71b3163a307cf4c28c
+  locations:
+    - {file: src/index.ts, function: "<anonymous> tool inspect_ui", lines: [424, 473]}
+    - {file: src/index.ts, function: buildDeviceArgs, lines: [285, 287]}
+    - {file: src/index.ts, function: runAdb, lines: [62, 68]}
+source: ghsa
+split: null
+notes: "The inspect_ui tool put its device and outputPath arguments (device via formatDeviceArg) into strings such as `adb ${deviceArg}shell uiautomator dump ${remotePath}` and ran them with child_process.exec, so shell metacharacters in a tool argument executed commands on the host; the other adb tools built their commands the same way. The fix replaces exec by the new runAdb helper (execFile with an argument array) and formatDeviceArg by buildDeviceArgs in all tools. Fix: https://github.com/srmorete/adb-mcp/pull/8 (merge commit 041729c0b25432df3199ff71b3163a307cf4c28c; the PR has two commits, vulnerable is the first parent of the merge)"

@@ -1,0 +1,21 @@
+id: mcpvb-0034
+title: "Command injection in fast_get_disk_usage of fast-filesystem-mcp"
+advisories: [CVE-2026-5327, GHSA-5226-3rvg-hp4x]
+repo: https://github.com/efforthye/fast-filesystem-mcp
+license: Apache-2.0
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: fast_get_disk_usage
+vulnerable:
+  commit: 471bc5b02fa7653b89c0b5f0e8414b3f2788913a
+  locations:
+    - {file: src/index.ts, function: handleGetDiskUsage, lines: [2211, 2240]}
+fixed:
+  commit: e2fbb1e9b3bd304e3fb17128e2eacf112bebdc45
+  locations:
+    - {file: src/index.ts, function: handleGetDiskUsage, lines: [2213, 2242]}
+source: ghsa
+split: null
+notes: "handleGetDiskUsage took the path argument of the fast_get_disk_usage tool without any check and ran `df -h \"${targetPath}\"` with child_process.exec, so a path containing a double quote or $(...) executed arbitrary commands. The fix calls execFile('df', ['-h', targetPath]) and converts the tar commands of fast_compress_files and fast_extract_archive in the same way; the follow-up commit 1af35f3dbcdb8e1c61541ac61cec97a64848ad95 converts the remaining exec calls (checkDiskSpace, tar -tf) and is not needed for this function. Fix: https://github.com/efforthye/fast-filesystem-mcp/pull/16 (squash commit e2fbb1e9b3bd304e3fb17128e2eacf112bebdc45, released in v3.5.2) The advisory lists CWE-74, but the sink is an OS command string, so the case uses CWE-78."

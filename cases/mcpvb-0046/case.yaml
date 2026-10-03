@@ -1,0 +1,23 @@
+id: mcpvb-0046
+title: "Command injection in search_username of mcp-maigret"
+advisories: [CVE-2026-2130, GHSA-2g7v-hghf-grg4]
+repo: https://github.com/w0h1v/mcp-maigret
+license: MIT
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: search_username
+vulnerable:
+  commit: f086de5eb7d95af73ff8ba0de9eb3e8827ed4e1b
+  locations:
+    - {file: src/index.ts, function: "<anonymous> CallTool handler", lines: [198, 305]}
+    - {file: src/index.ts, function: MaigretServer.execCommand, lines: [99, 112]}
+fixed:
+  commit: 8a692ed985dbed514bb223e2673e3e43471088f1
+  locations:
+    - {file: src/index.ts, function: "<anonymous> CallTool handler", lines: [247, 383]}
+    - {file: src/index.ts, function: MaigretServer.execCommand, lines: [148, 161]}
+source: ghsa
+split: null
+notes: "The CallTool handler joined the username and tags arguments of search_username (and the url argument of parse_url) into a 'docker run ...' command string that MaigretServer.execCommand ran with child_process.exec, so shell metacharacters in the tool arguments execute commands on the host. The fix validates username, tags and url and runs docker with execFile and an argument array. Fixed commit is the merge commit of PR #10 on main; its tree is identical to the advisory's commit b1ae073c4b3e789ab8de36dc6ca8111ae9399e7a. The repository moved from BurtTheCoder/mcp-maigret, the name in the advisory. Fix: https://github.com/w0h1v/mcp-maigret/pull/10 The advisory lists CWE-74 and CWE-77, but the sink is an OS command string, so the case uses CWE-78."

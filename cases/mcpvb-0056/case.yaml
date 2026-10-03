@@ -1,0 +1,23 @@
+id: mcpvb-0056
+title: "SSRF in export_space and import_space of contentful-mcp-server"
+advisories: [CVE-2026-53957, GHSA-2xhg-73j7-rrgx]
+repo: https://github.com/contentful/contentful-mcp-server
+license: MIT
+language: typescript
+subdir: null
+class: ssrf
+cwe: CWE-918
+mcp_tool: export_space
+vulnerable:
+  commit: 6e0038494a09c435f6a0a9a76fde2dc077f18b18
+  locations:
+    - {file: packages/mcp-tools/src/tools/jobs/space-to-space-migration/exportSpace.ts, function: tool, lines: [124, 173]}
+    - {file: packages/mcp-tools/src/tools/jobs/space-to-space-migration/importSpace.ts, function: tool, lines: [101, 138]}
+fixed:
+  commit: fa7477ee48515f4248bc91a025eab0ca83423fe0
+  locations:
+    - {file: packages/mcp-tools/src/tools/jobs/space-to-space-migration/exportSpace.ts, function: tool, lines: [105, 159]}
+    - {file: packages/mcp-tools/src/tools/jobs/space-to-space-migration/importSpace.ts, function: tool, lines: [84, 124]}
+source: ghsa
+split: null
+notes: "The export_space and import_space tools spread their tool-call arguments, including the schema fields host, proxy, rawProxy and headers, into the options handed to contentful-export / contentful-import together with the server's management token; these libraries build the Management API base URL from host (or route through proxy), so the caller chooses the endpoint that receives the requests and the bearer token. The fix removes host, proxy, rawProxy, headers and config (for export_space also hostDelivery and deliveryToken) from the tool schemas and always sets host from the server configuration. The sink is the library call in the tool function (the request itself is made inside the dependency); both workspace packages (packages/mcp-server registers the tools of packages/mcp-tools) form the server, hence no subdir. Fix: https://github.com/contentful/contentful-mcp-server/pull/376 (squash commit fa7477ee48515f4248bc91a025eab0ca83423fe0)"

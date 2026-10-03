@@ -1,0 +1,26 @@
+id: mcpvb-0043
+title: "Command injection in describe_go_package of mcp-package-docs"
+advisories: [CVE-2025-54073, GHSA-vf9j-h32g-2764]
+repo: https://github.com/sammcj/mcp-package-docs
+license: MIT
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: describe_go_package
+vulnerable:
+  commit: 8e9bd31f77cf731a15383577326ae777f52bf425
+  locations:
+    - {file: src/package-docs-server.ts, function: PackageDocsServer.describeGoPackage, lines: [1575, 1822]}
+    - {file: src/package-docs-server.ts, function: PackageDocsServer.isGoPackageInstalledLocally, lines: [326, 345]}
+    - {file: src/package-docs-server.ts, function: PackageDocsServer.getLocalGoDoc, lines: [409, 453]}
+fixed:
+  commit: cb4ad49615275379fd6f2f1cf1ec4731eec56eb9
+  locations:
+    - {file: src/package-docs-server.ts, function: PackageDocsServer.describeGoPackage, lines: [1613, 1857]}
+    - {file: src/package-docs-server.ts, function: PackageDocsServer.isGoPackageInstalledLocally, lines: [366, 385]}
+    - {file: src/package-docs-server.ts, function: PackageDocsServer.getLocalGoDoc, lines: [449, 490]}
+    - {file: src/package-docs-server.ts, function: safeGoDoc, lines: [43, 55]}
+source: ghsa
+split: null
+notes: "The package and symbol arguments of the describe_go_package tool (alias lookup_go_doc) were interpolated into the shell strings `go list -f '{{.Dir}}' ${packageName}` and `go doc ${packageName}.${symbol}` and run with child_process.exec in describeGoPackage, isGoPackageInstalledLocally and getLocalGoDoc. The fix routes these calls through the new helpers safeGoDoc and safeGoList, which strip everything but [a-zA-Z0-9._/-] and call execFile with an argument array; the Python and Swift helpers of the same file were converted to execFile as well. Fix: https://github.com/sammcj/mcp-package-docs/commit/cb4ad49615275379fd6f2f1cf1ec4731eec56eb9 (PR #13) The advisory lists CWE-77, but the sink is an OS command string, so the case uses CWE-78."

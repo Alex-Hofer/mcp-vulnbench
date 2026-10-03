@@ -1,0 +1,23 @@
+id: mcpvb-0033
+title: "Command injection in git_init and other tools of git-mcp-server"
+advisories: [CVE-2025-53107, GHSA-3q26-f695-pp76]
+repo: https://github.com/cyanheads/git-mcp-server
+license: Apache-2.0
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: git_init
+vulnerable:
+  commit: f30169ec3a2520990e5467c19ef42ea7d6d9270e
+  locations:
+    - {file: src/mcp-server/tools/gitInit/logic.ts, function: gitInitLogic, lines: [63, 227]}
+    - {file: src/mcp-server/tools/gitAdd/logic.ts, function: addGitFiles, lines: [48, 231]}
+fixed:
+  commit: 0dbd6995ccdf76ab770b58013034365b2d06c4d9
+  locations:
+    - {file: src/mcp-server/tools/gitInit/logic.ts, function: gitInitLogic, lines: [63, 230]}
+    - {file: src/mcp-server/tools/gitAdd/logic.ts, function: addGitFiles, lines: [48, 193]}
+source: ghsa
+split: null
+notes: "The initialBranch and path arguments of git_init reach gitInitLogic, and the path and files arguments of git_add reach addGitFiles; both interpolated them into a double-quoted git command string run with child_process.exec, so $(...) or a quote followed by shell metacharacters executes commands. The fix replaces exec with execFile and argument arrays in these and 21 further tool logic files with the same pattern (git_commit, git_clone, git_log, ...); the two listed locations are the ones the advisory demonstrates. Fix: https://github.com/cyanheads/git-mcp-server/commit/0dbd6995ccdf76ab770b58013034365b2d06c4d9 The advisory lists CWE-77, but the sink is an OS command string, so the case uses CWE-78."

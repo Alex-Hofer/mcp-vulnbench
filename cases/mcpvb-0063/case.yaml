@@ -1,0 +1,25 @@
+id: mcpvb-0063
+title: "SSRF via Hackmd-Api-Url header of hackmd-mcp"
+advisories: [CVE-2025-59155, GHSA-g5cg-6c7v-mmpw]
+repo: https://github.com/yuna0x0/hackmd-mcp
+license: MIT
+language: typescript
+subdir: null
+class: ssrf
+cwe: CWE-918
+mcp_tool: Hackmd-Api-Url
+vulnerable:
+  commit: 35af63cdc8a1bc6a35c159686722722a81db94f7
+  locations:
+    - {file: index.ts, function: parseConfig, lines: [45, 82]}
+    - {file: index.ts, function: "<anonymous> POST /mcp handler", lines: [101, 153]}
+    - {file: index.ts, function: createServer, lines: [85, 98]}
+fixed:
+  commit: 43936c78a5bb3dedc74e8f080607a1125caa8c13
+  locations:
+    - {file: index.ts, function: parseConfig, lines: [72, 119]}
+    - {file: index.ts, function: "<anonymous> POST /mcp handler", lines: [138, 208]}
+    - {file: index.ts, function: createServer, lines: [122, 135]}
+source: ghsa
+split: null
+notes: "In HTTP mode every request to the /mcp endpoint may carry a Hackmd-Api-Url header (or a base64-encoded JSON config query parameter); parseConfig takes its value as hackmdApiUrl and the POST /mcp handler passes it to createServer, which builds the @hackmd/api client with it as base URL (new API(token, url)), so every tool call sends its requests, including the API token, to the host chosen by the MCP client. The fix validates the URL in the POST /mcp handler against an allowlist (ALLOWED_HACKMD_API_URLS, default only https://api.hackmd.io/v1). The tainted value is a header of the MCP HTTP transport, not a tool argument; the HTTP requests themselves are made inside the @hackmd/api dependency, createServer is where the URL enters the client. Fix: https://github.com/yuna0x0/hackmd-mcp/commit/43936c78a5bb3dedc74e8f080607a1125caa8c13"

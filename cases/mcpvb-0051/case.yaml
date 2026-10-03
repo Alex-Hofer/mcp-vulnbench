@@ -1,0 +1,23 @@
+id: mcpvb-0051
+title: "Arbitrary file write in vault_batch of notebooklm-mcp"
+advisories: [CVE-2026-61647, GHSA-jjhp-8crj-mppq]
+repo: https://github.com/roomi-fields/notebooklm-mcp
+license: MIT
+language: typescript
+subdir: null
+class: path-traversal
+cwe: CWE-22
+mcp_tool: vault_batch
+vulnerable:
+  commit: 50f74d6bec799687066a25355894077577683231
+  locations:
+    - {file: src/utils/vault-writer.ts, function: runBatchToVault, lines: [246, 348]}
+    - {file: src/utils/vault-writer.ts, function: makeSlug, lines: [64, 78]}
+fixed:
+  commit: 13828d9ff3933839ce14c1797d3b20a6bb7694a6
+  locations:
+    - {file: src/utils/vault-writer.ts, function: runBatchToVault, lines: [289, 391]}
+    - {file: src/utils/vault-writer.ts, function: makeSlug, lines: [64, 79]}
+source: ghsa
+split: null
+notes: "The vault_dir and slug_prefix arguments of the vault_batch tool (legacy alias batch_to_vault; src/index.ts dispatches to ToolHandlers.handleBatchToVault) reach runBatchToVault, which passes path.resolve(vault_dir) to fs.mkdir and writes path.join(dir, makeSlug(..., slug_prefix, ...) + '.md'/'.json') with fs.writeFile (sinks). The fix always strips separators and '..' from slug_prefix (new sanitizeSlugPrefix, called in makeSlug) and routes vault_dir through the new resolveVaultDir, which confines it only when the operator sets the NOTEBOOKLM_VAULT_ROOT environment variable; without it the fixed version still accepts any vault_dir (opt-in fix). Fix: https://github.com/roomi-fields/notebooklm-mcp/commit/13828d9ff3933839ce14c1797d3b20a6bb7694a6 (release 2.0.3, issue #15) Caveat: the fix is opt-in. resolveVaultDir confines vault_dir only when NOTEBOOKLM_VAULT_ROOT is set; without it the fixed version still writes to any directory (only slug_prefix is always sanitized), so a path-traversal finding there may be a true positive for that behavior rather than a missed fix."

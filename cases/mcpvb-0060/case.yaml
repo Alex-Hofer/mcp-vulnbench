@@ -1,0 +1,23 @@
+id: mcpvb-0060
+title: "SSRF in audit_webpage and get_summary of a11y-mcp"
+advisories: [CVE-2026-5323, GHSA-prmx-7v35-7q82]
+repo: https://github.com/priyankark/a11y-mcp
+license: MPL-2.0
+language: javascript
+subdir: null
+class: ssrf
+cwe: CWE-918
+mcp_tool: audit_webpage
+vulnerable:
+  commit: 19fcc94e0e70de80b0a8e029a3b269b40ab41da8
+  locations:
+    - {file: src/index.js, function: A11yServer.auditWebpage, lines: [98, 184]}
+    - {file: src/index.js, function: A11yServer.getSummary, lines: [186, 259]}
+fixed:
+  commit: 58650a814001f3a0159c51969f30c52091da8354
+  locations:
+    - {file: src/index.js, function: A11yServer.auditWebpage, lines: [172, 261]}
+    - {file: src/index.js, function: A11yServer.getSummary, lines: [263, 339]}
+source: ghsa
+split: null
+notes: "The url argument of the audit_webpage and get_summary tools is passed unchecked to Puppeteer's page.goto(), so the headless browser on the server loads loopback, private-network or cloud-metadata URLs (and non-HTTP schemes) and the audit result is returned to the caller. The fix adds validateUrl(), which allows only http/https, rejects loopback names and resolves the hostname to reject private, link-local and loopback addresses before navigating. The advisory references commit e3e11c9e8482bd06b82fd9fced67be4856f0dffc; the fixed commit is the merge commit of its pull request #3 on main (identical tree), the vulnerable commit its first parent. Fix: https://github.com/priyankark/a11y-mcp/pull/3"

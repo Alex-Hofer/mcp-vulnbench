@@ -1,0 +1,21 @@
+id: mcpvb-0041
+title: "Command injection in run_nmap_scan of nmap-mcp-server"
+advisories: [CVE-2026-3484, GHSA-xc68-rrqc-qgq3]
+repo: https://github.com/PhialsBasement/nmap-mcp-server
+license: MIT
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: run_nmap_scan
+vulnerable:
+  commit: bee6d23547d57ae02460022f7c78ac0893092e38
+  locations:
+    - {file: src/index.ts, function: runNmapScan, lines: [30, 72]}
+fixed:
+  commit: 2160e5f2b7dd09a1d61419195fd2b588a0bc26d5
+  locations:
+    - {file: src/index.ts, function: runNmapScan, lines: [74, 120]}
+source: ghsa
+split: null
+notes: "runNmapScan concatenated the target, ports and additionalFlags arguments of the run_nmap_scan tool into one `nmap ...` string and ran it with child_process.exec, so shell metacharacters in a tool argument executed arbitrary commands. The fix builds an argument array for execFile and checks additionalFlags with the new validateAdditionalFlags function (a flag allowlist plus a blocklist of shell metacharacters). Fix: https://github.com/PhialsBasement/nmap-mcp-server/pull/8 (merge commit 2160e5f2b7dd09a1d61419195fd2b588a0bc26d5; its only commit 30a6b9e1c7fa6146f51e28d6ab83a2568d9a3488 is the patch named in the advisory and has the same tree) The advisory lists CWE-74 and CWE-77, but the sink is an OS command string, so the case uses CWE-78. Caveat: in the fixed version target and additionalFlags still reach nmap as arguments (option injection, CWE-88), so a command-injection finding there may be a true positive for that weakness rather than a missed fix."

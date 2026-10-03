@@ -1,0 +1,21 @@
+id: mcpvb-0064
+title: "SSRF in the fetch tools of fetch-mcp (private-IP check applied to the full URL)"
+advisories: [CVE-2025-65513, GHSA-8fxj-2g9q-8fjw]
+repo: https://github.com/zcaceres/fetch-mcp
+license: MIT
+language: typescript
+subdir: null
+class: ssrf
+cwe: CWE-918
+mcp_tool: fetch_html
+vulnerable:
+  commit: 9fd840d575e68a37f72f07b8f4d2c77f87698c36
+  locations:
+    - {file: src/Fetcher.ts, function: Fetcher._fetch, lines: [15, 44]}
+fixed:
+  commit: e7659f8cca26ce051b65f5bc28418df155812b8e
+  locations:
+    - {file: src/Fetcher.ts, function: Fetcher._fetch, lines: [15, 46]}
+source: ghsa
+split: null
+notes: "The url argument of fetch_html, fetch_json, fetch_txt and fetch_markdown reaches Fetcher._fetch, which passed the whole URL string to private-ip's is_ip_private(); that never matches a URL, so the guard was ineffective and fetch() requested loopback and private addresses. The fix parses the URL and checks the hostname (plus an explicit localhost check). The advisory names no fix; commit e7659f8 ('fix: SSRF bypass ...') describes and removes exactly this root cause. It is one commit of pull request #29 (dependency update, Bun migration, new features; merged as e91a1ea, first parent c662c8a is the commit the advisory cites), so the case uses the fix commit and its parent, whose src/Fetcher.ts is identical to c662c8a (version 1.0.2); the two following commits (e5f661b, 7e423c4) add further hardening (protocol allowlist, IPv6 brackets, redirect check) and are not part of this case. Fix: https://github.com/zcaceres/fetch-mcp/commit/e7659f8cca26ce051b65f5bc28418df155812b8e Caveat: the fixed check still lets an IPv6 loopback literal and redirects through (hardened in the two following commits), so an SSRF finding there may be a true positive for that bug rather than a missed fix."

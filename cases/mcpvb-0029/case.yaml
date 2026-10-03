@@ -1,0 +1,25 @@
+id: mcpvb-0029
+title: "Command injection in the SSH and SCP tools of mcp-ssh"
+advisories: [CVE-2025-9654, GHSA-694p-3fxc-m92h]
+repo: https://github.com/AiondaDotCom/mcp-ssh
+license: MIT
+language: javascript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: runRemoteCommand
+vulnerable:
+  commit: e1cb8234dfd47a02775cae2b4bf2abf981fa3412
+  locations:
+    - {file: server-simple.mjs, function: SSHClient.runRemoteCommand, lines: [168, 192]}
+    - {file: server-simple.mjs, function: SSHClient.uploadFile, lines: [218, 229]}
+    - {file: server-simple.mjs, function: SSHClient.downloadFile, lines: [231, 242]}
+fixed:
+  commit: 5b9b9c5b28d3f2672f356a790154ed68e17ef453
+  locations:
+    - {file: server-simple.mjs, function: SSHClient.runRemoteCommand, lines: [169, 192]}
+    - {file: server-simple.mjs, function: SSHClient.uploadFile, lines: [218, 230]}
+    - {file: server-simple.mjs, function: SSHClient.downloadFile, lines: [232, 244]}
+source: ghsa
+split: null
+notes: "The hostAlias and command arguments of the runRemoteCommand tool (and hostAlias, localPath, remotePath of uploadFile/downloadFile) are passed by the CallTool handler to SSHClient methods that interpolated them into an ssh or scp command string run with child_process.exec, so shell metacharacters such as $(...) or backticks execute local commands. The fix replaces exec with execFile and an argument array. The advisory also names cd2566a948b696501abfa6c6b03462cac5fb43d8, the v1.0.4 release commit directly after the fix, which changes no source code. Fix: https://github.com/AiondaDotCom/mcp-ssh/commit/5b9b9c5b28d3f2672f356a790154ed68e17ef453 The advisory lists CWE-74, but the sink is an OS command string, so the case uses CWE-78. Caveat: the fixed functions still pass hostAlias to ssh and scp without '--' or validation (option injection, GHSA-p4h8-56qp-hpgv, fixed later in 1.3.5), so a command-injection finding there may be a true positive for that bug rather than a missed fix."

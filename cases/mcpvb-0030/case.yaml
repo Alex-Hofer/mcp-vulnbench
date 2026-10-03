@@ -1,0 +1,25 @@
+id: mcpvb-0030
+title: "SSH/SCP option injection via hostAlias in mcp-ssh"
+advisories: [GHSA-p4h8-56qp-hpgv]
+repo: https://github.com/AiondaDotCom/mcp-ssh
+license: MIT
+language: javascript
+subdir: null
+class: command-injection
+cwe: CWE-88
+mcp_tool: runRemoteCommand
+vulnerable:
+  commit: c7638cb0afa938f2342e083f40c2e9d8374fb2f7
+  locations:
+    - {file: server.mjs, function: SSHClient.runRemoteCommand, lines: [332, 407]}
+    - {file: server.mjs, function: SSHClient.uploadFile, lines: [440, 455]}
+    - {file: server.mjs, function: SSHClient.downloadFile, lines: [457, 472]}
+fixed:
+  commit: 1b6ac6d1ce99b299ada88ffc04a05a3b6d06820c
+  locations:
+    - {file: server.mjs, function: SSHClient.runRemoteCommand, lines: [392, 470]}
+    - {file: server.mjs, function: SSHClient.uploadFile, lines: [503, 519]}
+    - {file: server.mjs, function: SSHClient.downloadFile, lines: [521, 537]}
+source: ghsa
+split: null
+notes: "The hostAlias argument of the runRemoteCommand tool (also checkConnectivity, runCommandBatch, uploadFile, downloadFile) is passed by the CallTool handler to SSHClient.runRemoteCommand, which spawns ssh with hostAlias as a positional argument and no '--' terminator, so a value such as -oProxyCommand=... is parsed as an ssh option and runs a local command; uploadFile/downloadFile do the same with scp, and on Windows shell:true additionally exposed the arguments to cmd.exe. The fix (release 1.3.5) adds '--' before the positional arguments, validates hostAlias against an allowlist and the known hosts, and always uses shell:false with resolved ssh/scp paths. Fix: https://github.com/AiondaDotCom/mcp-ssh/commit/1b6ac6d1ce99b299ada88ffc04a05a3b6d06820c"

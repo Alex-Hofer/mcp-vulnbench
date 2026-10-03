@@ -1,0 +1,21 @@
+id: mcpvb-0054
+title: "Arbitrary file read in upload_markdown of gitlab-mcp"
+advisories: [CVE-2026-61560, GHSA-cv3r-c5h8-f4g5]
+repo: https://github.com/zereight/gitlab-mcp
+license: MIT
+language: typescript
+subdir: null
+class: path-traversal
+cwe: CWE-22
+mcp_tool: upload_markdown
+vulnerable:
+  commit: c2577169b21d62197f767895fe97651ffb2d7443
+  locations:
+    - {file: index.ts, function: markdownUpload, lines: [7873, 7913]}
+fixed:
+  commit: 7d19ebf6f41596a442b6eacc66f12fc5f10cd41e
+  locations:
+    - {file: index.ts, function: markdownUpload, lines: [7994, 8052]}
+source: ghsa
+split: null
+notes: "The file_path argument of the upload_markdown tool is passed by handleToolCall to markdownUpload, which reads it with fs.readFileSync (sink) and uploads the content to a GitLab project; over the unauthenticated SSE transport this let any network client read server files such as /proc/self/environ. The fix is PR #482 (merge commit 7d19ebf6f41596a442b6eacc66f12fc5f10cd41e): markdownUpload rejects file_path when the server runs with the SSE or Streamable HTTP transport (IS_REMOTE) and accepts inline base64 content instead. The advisory also lists PR #554 (bearer-token authentication for the SSE endpoints, first patched release 2.1.27), which does not touch the tainted path. handleToolCall, the dispatcher of all tools (about 2,400 lines), is not listed as a location. Caveat: with the stdio transport file_path is still read by design, so a path-traversal finding in the fixed markdownUpload is expected and not a missed fix. Fix: https://github.com/zereight/gitlab-mcp/pull/482"

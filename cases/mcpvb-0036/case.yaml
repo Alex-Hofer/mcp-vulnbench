@@ -1,0 +1,27 @@
+id: mcpvb-0036
+title: "Command injection in kubectl_scale and other kubectl tools of mcp-server-kubernetes"
+advisories: [CVE-2025-53355, GHSA-gjv4-ghm7-q58q]
+repo: https://github.com/Flux159/mcp-server-kubernetes
+license: MIT
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: kubectl_scale
+vulnerable:
+  commit: e4a68628c53a408dc8b94de415cf935855979662
+  locations:
+    - {file: src/tools/kubectl-scale.ts, function: kubectlScale, lines: [34, 89]}
+    - {file: src/tools/kubectl-patch.ts, function: kubectlPatch, lines: [51, 156]}
+    - {file: src/tools/kubectl-operations.ts, function: explainResource, lines: [77, 110]}
+    - {file: src/tools/kubectl-operations.ts, function: executeKubectlCommand, lines: [69, 75]}
+fixed:
+  commit: ab165f5a0eea917fef5dbae954506fff6f4bf514
+  locations:
+    - {file: src/tools/kubectl-scale.ts, function: kubectlScale, lines: [35, 99]}
+    - {file: src/tools/kubectl-patch.ts, function: kubectlPatch, lines: [55, 163]}
+    - {file: src/tools/kubectl-operations.ts, function: explainResource, lines: [80, 114]}
+    - {file: src/tools/kubectl-operations.ts, function: executeKubectlCommand, lines: [69, 78]}
+source: ghsa
+split: null
+notes: "The CallTool handler passes the tool arguments unchanged to the tool functions; kubectlScale interpolated namespace, name and resourceType of kubectl_scale into a kubectl command string run with child_process.execSync (kubectlPatch and explainResource/executeKubectlCommand did the same for kubectl_patch and explain_resource), so a value such as 'a;id>/tmp/x' executes shell commands. The fix switches to execFileSync with argument arrays in these and ten further tool files with the same pattern; the listed locations are the tools the advisory names. The fix commit is the first commit of PR #176 (merged into main with merge commit 9a6cd14b7555e5abcba36ae58b25847da3ec4340 together with two unrelated feature commits), so the advisory's commit and its parent are used. Fix: https://github.com/Flux159/mcp-server-kubernetes/commit/ab165f5a0eea917fef5dbae954506fff6f4bf514 The advisory lists CWE-77, but the sink is an OS command string, so the case uses CWE-78. Caveat: the fixed functions still put name and resourceType into positional kubectl arguments, where a value such as --server=... is taken as a flag (fixed later in d7890f5), so a command-injection finding there may be a true positive for that bug rather than a missed fix."

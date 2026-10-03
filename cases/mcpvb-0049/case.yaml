@@ -1,0 +1,21 @@
+id: mcpvb-0049
+title: "Arbitrary file read in context_import of mcp-memory-keeper"
+advisories: [CVE-2026-54561, GHSA-f7wf-v2vw-mpcx]
+repo: https://github.com/mkreyman/mcp-memory-keeper
+license: MIT
+language: typescript
+subdir: null
+class: path-traversal
+cwe: CWE-22
+mcp_tool: context_import
+vulnerable:
+  commit: dd53a8fe8941fb1a5b98deffa19d7ccc655961ac
+  locations:
+    - {file: src/index.ts, function: "<anonymous> CallToolRequestSchema handler (case context_import)", lines: [372, 3882]}
+fixed:
+  commit: 84f6dfa692736a34ff36e2d2cf2188b71facf73b
+  locations:
+    - {file: src/index.ts, function: "<anonymous> CallToolRequestSchema handler (case context_import)", lines: [473, 4124]}
+source: ghsa
+split: null
+notes: "The filePath argument of the context_import tool is passed unchecked to fs.readFileSync in the context_import branch of the CallToolRequestSchema handler; valid JSON is imported into the caller's session and for other files the JSON.parse error message echoes the leading bytes. The fix confines the path to a server-owned exports directory with the new resolveConfinedImportPath (realpathSync + prefix check, src/index.ts lines 92-130 in the fixed version) and returns generic error messages. Fix: https://github.com/mkreyman/mcp-memory-keeper/pull/36 (merge commit 84f6dfa692736a34ff36e2d2cf2188b71facf73b; the vulnerable commit is its first parent) Caveat: the read is inline in the switch of the CallTool handler, so the only location is the whole handler (about 3,500 lines); a path-traversal finding for another tool of the same handler (for example context_export, which writes a file named after sessionId) also counts for this case."

@@ -1,0 +1,21 @@
+id: mcpvb-0031
+title: "Command injection in mark_task_done of mcp-server-taskwarrior"
+advisories: [CVE-2026-5833, GHSA-95hg-3c55-xf9x]
+repo: https://github.com/awwaiid/mcp-server-taskwarrior
+license: MIT
+language: typescript
+subdir: null
+class: command-injection
+cwe: CWE-78
+mcp_tool: mark_task_done
+vulnerable:
+  commit: d502ad2799d00ac2d879c6f279b0795fc3fdf02c
+  locations:
+    - {file: index.ts, function: "<anonymous> CallToolRequestSchema handler", lines: [116, 191]}
+fixed:
+  commit: 29850c7a6991a35aea1402b6cba2cd01c7541205
+  locations:
+    - {file: index.ts, function: "<anonymous> CallToolRequestSchema handler", lines: [116, 202]}
+source: ghsa
+split: null
+notes: "The CallTool handler interpolated the identifier argument of mark_task_done (an unconstrained string) into `task ${identifier} done` and the description and due arguments of add_task into `task add ...` and ran the strings with child_process.execSync, so shell metacharacters executed arbitrary commands. The fix calls execFileSync with an argument array in all three tool branches. Fix: https://github.com/awwaiid/mcp-server-taskwarrior/pull/9 (merge commit 29850c7a6991a35aea1402b6cba2cd01c7541205; its only commit 1ee3d282debfa0a99afeb41d22c4b2fd5a3148f2 is the patch named in the advisory and has the same tree) The advisory lists CWE-74, but the sink is an OS command string, so the case uses CWE-78."

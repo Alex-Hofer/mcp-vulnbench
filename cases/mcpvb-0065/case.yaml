@@ -1,0 +1,23 @@
+id: mcpvb-0065
+title: "SSRF in webpage-to-markdown of markdownify-mcp"
+advisories: [CVE-2025-5276, GHSA-frq9-3hp2-xvxg]
+repo: https://github.com/zcaceres/markdownify-mcp
+license: MIT
+language: typescript
+subdir: null
+class: ssrf
+cwe: CWE-918
+mcp_tool: webpage-to-markdown
+vulnerable:
+  commit: 949f12e633320548c565c6ec892d33695b158d64
+  locations:
+    - {file: src/server.ts, function: "<anonymous> CallTool handler", lines: [39, 111]}
+    - {file: src/Markdownify.ts, function: Markdownify.toMarkdown, lines: [51, 92]}
+fixed:
+  commit: 0284aa8f34d32c65e20d8cda2d429b7943c9af03
+  locations:
+    - {file: src/server.ts, function: "<anonymous> CallTool handler", lines: [41, 123]}
+    - {file: src/Markdownify.ts, function: Markdownify.toMarkdown, lines: [51, 92]}
+source: ghsa
+split: null
+notes: "The url argument of the webpage-to-markdown, youtube-to-markdown and bing-search-to-markdown tools is passed by the CallTool handler to Markdownify.toMarkdown, which requests it with fetch() and returns the converted body, so internal and loopback URLs can be read. The fix validates the URL in the handler before the call: only http/https and no private address literal (private-ip on the parsed hostname); Markdownify.toMarkdown with the fetch() sink is unchanged. The advisory text names Markdownify.get(), but the request is made in toMarkdown. Fixed commit is the merge commit of pull request #17 (two commits, 3166d86 and 3667bd4), vulnerable its first parent. Fix: https://github.com/zcaceres/markdownify-mcp/commit/0284aa8f34d32c65e20d8cda2d429b7943c9af03"

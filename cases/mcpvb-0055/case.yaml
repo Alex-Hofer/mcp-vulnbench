@@ -1,0 +1,27 @@
+id: mcpvb-0055
+title: "SSRF in fetchWebContent of open-webSearch"
+advisories: [CVE-2026-42260, GHSA-v228-72c7-fx8j]
+repo: https://github.com/Aas-ee/open-webSearch
+license: Apache-2.0
+language: typescript
+subdir: null
+class: ssrf
+cwe: CWE-918
+mcp_tool: fetchWebContent
+vulnerable:
+  commit: e29b2357a11d25c9288e1bb006728ddde4d4b6b1
+  locations:
+    - {file: src/engines/web/fetchWebContent.ts, function: fetchWebContent, lines: [313, 490]}
+    - {file: src/engines/web/fetchWebContent.ts, function: tryRequestWithBrowserCookies, lines: [288, 311]}
+    - {file: src/utils/urlSafety.ts, function: isPrivateOrLocalHostname, lines: [95, 119]}
+    - {file: src/utils/urlSafety.ts, function: isPrivateOrLocalIp, lines: [84, 93]}
+fixed:
+  commit: a7309c9c619c7bc5add070aead2a233ce9698c76
+  locations:
+    - {file: src/engines/web/fetchWebContent.ts, function: fetchWebContent, lines: [312, 489]}
+    - {file: src/engines/web/fetchWebContent.ts, function: tryRequestWithBrowserCookies, lines: [287, 310]}
+    - {file: src/utils/urlSafety.ts, function: isPrivateOrLocalHostname, lines: [11, 24]}
+    - {file: src/utils/httpRequest.ts, function: requestWithSafeRedirects, lines: [143, 191]}
+source: ghsa
+split: null
+notes: "The url argument of the fetchWebContent tool is only checked by isPublicHttpUrl/assertPublicHttpUrl; their isPrivateOrLocalHostname hands the bracketed URL.hostname of IPv6 literals such as [::1] or [::ffff:7f00:1] to isPrivateOrLocalIp, where isIP() returns 0, and never resolves hostnames, so fetchWebContent() sends axios.head/axios.get (and the cookie retry in tryRequestWithBrowserCookies) to loopback, private or metadata addresses and returns the body. The fix strips the brackets and classifies literals with ipaddr.js, resolves hostnames before the request (assertPublicHttpUrlResolved), routes all requests through the new requestWithSafeRedirects (manual redirects with a check per hop; it takes the place of the removed isPrivateOrLocalIp in the fixed locations and makes the request through axiosRequestImpl) and installs request-filtering-agent in buildAxiosRequestOptions. The fix is the merge commit of the advisory fork (six commits, 8c35c6b..8670d71); the vulnerable commit is its first parent (release 2.1.6). The advisory also lists CWE-20 and CWE-693. Fix: https://github.com/Aas-ee/open-webSearch/commit/a7309c9c619c7bc5add070aead2a233ce9698c76"
