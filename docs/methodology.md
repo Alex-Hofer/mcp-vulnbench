@@ -33,7 +33,8 @@ git tag; the analyze options in `tool.yaml` are part of every run's fingerprint 
 changed command is never mistaken for an old run. `MCPVB_UNFROZEN_MODELS=1` overrides the guard
 for development; such a run is marked `unfrozen` in `manifest.json`, and no published number comes
 from one. A later change to the models gets a new tag, and the results name the tag they were
-measured with. The report shows both halves.
+measured with. The report shows both halves, overall and per language group: Python on one side,
+JavaScript and TypeScript together on the other, since they share analyzers, rules and models.
 
 ## Metrics (per variant: overall, per class, per language and per half)
 - **Recall** = detected cases / cases whose vulnerable run is `ok`.
@@ -41,7 +42,7 @@ measured with. The report shows both halves.
   run is `ok`. A finding *persists* if it has the case's class and lies inside a fixed location.
 - **Alarms per KLOC** = classified findings (class among the five in scope) on the vulnerable
   versions of `ok` cases / KLOC of those versions. KLOC counts non-blank lines of the case language
-  without `test`, `tests`, `node_modules`, `vendor`, `third_party`, `dist`, `build`, virtualenvs
+  (JavaScript and TypeScript files alike for a case in either language) without `test`, `tests`, `node_modules`, `vendor`, `third_party`, `dist`, `build`, virtualenvs
   and `__pycache__`; findings in files of other languages (for example workflow YAML or a web
   frontend) or inside those folders are not counted either, so numerator and denominator cover the
   same code. A case whose sources are unavailable when scoring has no line count and is left out

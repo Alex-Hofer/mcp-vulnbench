@@ -113,33 +113,42 @@ def render_report(metrics: dict, manifest: dict | None = None) -> str:
     return "\n".join(lines)
 
 
+def _block_cells(block: dict) -> list[str]:
+    fix = _counted(block["fix_recognition"], block["fix_recognized"], block.get("fix_assessed"))
+    return [
+        str(block["cases_ok"]),
+        str(block["detected"]),
+        _pct(block["recall"]),
+        fix,
+        _num(block["alarms_per_kloc"]),
+    ]
+
+
 def _split_table(variants: dict, names: list[str]) -> list[str]:
-    """The overall figures per half (development and test), if the cases are split."""
+    """The overall figures per half (development and test), if the cases are split.
+
+    With cases in more than one language group a second table shows each half per group.
+    """
     halves = sorted({h for name in names for h in variants[name].get("by_split", {})})
     if not halves:
         return []
-    lines = ["", "## By split", ""]
-    lines.append(
-        "| Variant | Half | Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC |"
-    )
+    columns = "Cases (ok) | Detected | Recall | Fix recognized | Alarms/KLOC |"
+    lines = ["", "## By split", "", f"| Variant | Half | {columns}"]
     lines.append("|---|---|---:|---:|---:|---:|---:|")
     for name in names:
-        for half in halves:
-            block = variants[name].get("by_split", {}).get(half)
-            if block is None:
-                continue
-            fix = _counted(
-                block["fix_recognition"], block["fix_recognized"], block.get("fix_assessed")
-            )
-            cells = [
-                half,
-                str(block["cases_ok"]),
-                str(block["detected"]),
-                _pct(block["recall"]),
-                fix,
-                _num(block["alarms_per_kloc"]),
-            ]
-            lines.append(f"| {name} | " + " | ".join(cells) + " |")
+        for half, block in sorted(variants[name].get("by_split", {}).items()):
+            lines.append(f"| {name} | " + " | ".join([half, *_block_cells(block)]) + " |")
+    groups = sorted({g for name in names for g in variants[name].get("by_language_split", {})})
+    if len(groups) < 2:
+        return lines
+    lines += ["", "## By language and split", "", f"| Variant | Language | Half | {columns}"]
+    lines.append("|---|---|---|---:|---:|---:|---:|---:|")
+    for name in names:
+        for group in groups:
+            blocks = variants[name].get("by_language_split", {}).get(group, {})
+            for half, block in sorted(blocks.items()):
+                cells = [group, half, *_block_cells(block)]
+                lines.append(f"| {name} | " + " | ".join(cells) + " |")
     return lines
 
 

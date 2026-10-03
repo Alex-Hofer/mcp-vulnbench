@@ -112,6 +112,11 @@ def _recall(outcomes: list[CaseOutcome], attribute: str = "detected") -> dict:
     return {"cases_ok": len(scored), "detected": hits, "recall": _rate(hits, len(scored))}
 
 
+def language_group(language: str) -> str:
+    """JavaScript and TypeScript are measured as one group: same analyzers, rules and models."""
+    return "python" if language == Language.PYTHON else "javascript/typescript"
+
+
 def _block(mine: list[CaseOutcome], found: list[Finding], kloc: dict[str, float]) -> dict:
     """The overall metrics of one variant on a set of cases (all of them, or one half)."""
     assessed = [o for o in mine if o.detected and o.persisting is not None]
@@ -158,6 +163,10 @@ def summarize(
         mine = [o for o in outcomes if o.variant == name]
         found = vulnerable_findings.get(name, [])
         halves = sorted({o.split for o in mine if o.split})
+        grouped: dict[str, dict[str, list[CaseOutcome]]] = {}
+        for o in mine:
+            if o.split:
+                grouped.setdefault(language_group(o.language), {}).setdefault(o.split, []).append(o)
         variants[name] = {
             "overall": _block(mine, found, kloc),
             "by_class": {
@@ -170,6 +179,10 @@ def summarize(
                 for language in sorted({o.language for o in mine})
             },
             "by_split": {h: _block([o for o in mine if o.split == h], found, kloc) for h in halves},
+            "by_language_split": {
+                group: {h: _block(grouped[group][h], found, kloc) for h in sorted(grouped[group])}
+                for group in sorted(grouped)
+            },
             "lenient": {
                 "recall_file_level": _recall(mine, "detected_file_level")["recall"],
                 "recall_any_class": _recall(mine, "detected_any_class")["recall"],

@@ -133,6 +133,29 @@ def test_report_shows_both_halves():
     assert "| bandit | test | 2 | 1 | – |" in text
 
 
+def test_report_shows_each_half_per_language():
+    metrics = copy.deepcopy(METRICS)
+    unsupported = {**OVERALL, "cases_ok": 0, "detected": 0, "recall": None}
+    metrics["variants"]["bandit"]["by_split"] = {"dev": OVERALL, "test": unsupported}
+    metrics["variants"]["bandit"]["by_language_split"] = {
+        "javascript/typescript": {"test": unsupported},
+        "python": {"dev": OVERALL},
+    }
+    text = render_report(metrics)
+    assert "## By language and split" in text
+    assert "| Variant | Language | Half | Cases (ok) |" in text
+    assert "| bandit | python | dev | 2 | 1 | 50 % | 0 % (0/1) | 55.56 |" in text
+    assert "| bandit | javascript/typescript | test | 0 | 0 | – |" in text
+
+
+def test_report_with_one_language_has_no_language_section():
+    metrics = copy.deepcopy(METRICS)
+    metrics["variants"]["bandit"]["by_split"] = {"dev": OVERALL}
+    metrics["variants"]["bandit"]["by_language_split"] = {"python": {"dev": OVERALL}}
+    assert "## By language and split" not in render_report(metrics)
+    assert "## By language and split" not in render_report(METRICS)  # metrics of an older version
+
+
 def test_report_without_halves_has_no_split_section():
     assert "## By split" not in render_report(METRICS)
 

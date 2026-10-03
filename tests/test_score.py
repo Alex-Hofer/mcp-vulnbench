@@ -8,7 +8,7 @@ from mcpvb.classes import VulnClass
 from mcpvb.cli import app
 from mcpvb.normalize import Finding
 from mcpvb.run import Status, fingerprint
-from mcpvb.schema import Case, load_cases
+from mcpvb.schema import Case, Language, load_cases
 from mcpvb.score import is_detected, is_persisting, score_case, summarize
 from mcpvb.tools import load_variant
 
@@ -266,6 +266,28 @@ def test_summarize_reports_each_half_like_overall():
     assert (by_split["test"]["cases_ok"], by_split["test"]["recall"]) == (1, 1.0)
     assert by_split["dev"]["alarms_per_kloc"] == 1.0
     assert summary["cases"][0]["split"] == "dev"
+
+
+def test_summarize_reports_each_half_per_language_group():
+    ok = Status.OK
+    rows = {
+        "mcpvb-0001": ("python", "dev", [finding(15, case_id="mcpvb-0001")]),
+        "mcpvb-0002": ("typescript", "dev", []),
+        "mcpvb-0003": ("javascript", "test", [finding(15, case_id="mcpvb-0003")]),
+        "mcpvb-0004": ("typescript", "test", []),
+    }
+    outcomes = []
+    for cid, (language, half, found) in rows.items():
+        this = case(cid).model_copy(update={"language": Language(language), "split": half})
+        outcomes.append(score_case("v", this, ok, ok, found, []))
+    groups = summarize(outcomes, {}, {})["variants"]["v"]["by_language_split"]
+    # JavaScript and TypeScript are one group: same analyzers, rules and models
+    assert sorted(groups) == ["javascript/typescript", "python"]
+    assert sorted(groups["python"]) == ["dev"]  # no Python case in the test half
+    assert (groups["python"]["dev"]["cases_ok"], groups["python"]["dev"]["detected"]) == (1, 1)
+    scripts = groups["javascript/typescript"]
+    assert (scripts["dev"]["cases_ok"], scripts["dev"]["recall"]) == (1, 0.0)
+    assert (scripts["test"]["cases_ok"], scripts["test"]["detected"]) == (2, 1)
 
 
 def test_a_half_without_ok_runs_has_no_rates():
