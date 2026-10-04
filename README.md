@@ -179,6 +179,8 @@ version they were built from.
 - [Methodology](docs/methodology.md) – metric definitions
 - [Adding a case](docs/curation.md)
 - [MCP models for CodeQL](models/codeql): one pack for Python, one for JavaScript and TypeScript
+- [Two upstream proposals for Python, measured](docs/comparison-codeql-22750.md): the model rows
+  next to a QL class proposed in github/codeql#22750
 
 ## License
 
