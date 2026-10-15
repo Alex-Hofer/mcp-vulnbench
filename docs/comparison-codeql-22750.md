@@ -76,8 +76,9 @@ No additional case, but:
   `py/polynomial-redos`); the others are elsewhere.
 - In CodeQL 2.27.1, `py/xxe`, `py/xml-bomb` and `py/nosql-injection` take only
   `RemoteFlowSource`. On a test file they see the sources of the class and not those from data
-  extensions (the gap reported in #22702). No run of the benchmark raises one of these three
-  alerts, with either proposal.
+  extensions (the gap reported in #22702 and fixed upstream on 2026-10-15 in
+  [github/codeql#22822](https://github.com/github/codeql/pull/22822)). No run of the benchmark
+  raises one of these three alerts, with either proposal.
 - The class leaves out parameters annotated with the SDK's `Context` (as imported from `fastmcp`
   or `mcp.server.fastmcp`), which carry the request context and not tool input. Rows cannot make
   that distinction and mark them as well. No alert in the benchmark starts at such a parameter.

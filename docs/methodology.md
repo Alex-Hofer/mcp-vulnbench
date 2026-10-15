@@ -89,8 +89,11 @@ behavior are deliberate:
   `typescript/*/security`; `semgrep-mcp` adds `ai/ai-best-practices/mcp-*` and
   `typescript/mcp/security`) instead of a registry ruleset that changes over time, and with
   `--timeout 0`, so no rule is cut off on a large file.
-- `codeql-mcp` is `codeql` plus the models in `models/codeql`, which mark MCP input as remote
-  sources. Nothing else differs. The rows for the SDKs stop where the handler starts: they add no
+- `codeql-mcp` is `codeql` plus the models in `models/codeql`, which mark MCP input as sources of
+  the `remote` threat model, the one CodeQL enables by default. (The upstream proposals,
+  github/codeql#22703 and #22749, use the opt-in `ai` threat model of github/codeql#22810 for
+  handler input since 2026-10-15, at the maintainers' request; the packs here stay as measured.)
+  Nothing else differs. The rows for the SDKs stop where the handler starts: they add no
   sinks and know no project's code.
   - Python (`mcp`, `fastmcp`; frozen as `models-v1`): the parameters of tool, resource and prompt
     handlers; the HTTP headers that `fastmcp` hands to handlers; the bearer token that token

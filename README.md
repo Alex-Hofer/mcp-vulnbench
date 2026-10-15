@@ -126,7 +126,9 @@ v0.2.0.
 - Three stable CodeQL queries (`py/xxe`, `py/xml-bomb`, `py/nosql-injection`) take only
   `RemoteFlowSource` and never see sources defined as data extensions; a small reproducer is part
   of the upstream report, [github/codeql#22702](https://github.com/github/codeql/issues/22702),
-  which also proposes the models.
+  which also proposes the models. CodeQL fixed this on 2026-10-15
+  ([github/codeql#22822](https://github.com/github/codeql/pull/22822)); the pinned 2.27.1 still
+  has the gap.
 
 ### Limitations
 
